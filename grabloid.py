@@ -30,10 +30,10 @@ class Grabloid():
     def __init__(self,script):
         os.chdir('O:\\')
         self.script = script
-        self.land_folder = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\{self.script}\\'
+        self.temp_folder_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\{self.script}\\'
         driver_path = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\"
         chrome_options = Options()
-        prefs = {'download.default_directory':self.land_folder,
+        prefs = {'download.default_directory':self.temp_folder_path,
          'plugins.always_open_pdf_externally':True,
          'download.prompt_for_download':False}
         chrome_options.add_experimental_option("prefs",prefs)
@@ -43,14 +43,14 @@ class Grabloid():
         self.credentials = pd.read_excel(driver_path+"automation_parameters.xlsx", sheet_name= f"{self.script}" ,usecols="A:B")
         self.to_address = pd.read_excel(driver_path+"automation_parameters.xlsx", sheet_name= "Email Address" ,usecols="A").iloc[0,0]
         self.wait = WebDriverWait(self.driver,10)
-        if os.path.exists(self.land_folder)==False:
-                os.mkdir(self.land_folder)
+        if os.path.exists(self.temp_folder_path)==False:
+                os.mkdir(self.temp_folder_path)
         else:
             pass
-        files = os.listdir(self.land_folder)
+        files = os.listdir(self.temp_folder_path)
         for file in files:
-            os.remove(self.land_folder+file)
-        os.chdir(self.land_folder)
+            os.remove(self.temp_folder_path+file)
+        os.chdir(self.temp_folder_path)
     
     def send_message(self,invoices):
         subject = f'{self.script} Invoices'

@@ -40,6 +40,7 @@ class Alabama_Grabloid(Grabloid):
         driver = self.driver
         wait = self.wait
         invoices_obtained=[]
+        password = self.credentials.iloc[0,1]
         for account in self.usernames:
             driver.get('https://www.medicaid.alabamaservices.org/ALPortal/')
             #Move to the drop down, hover and click "Secure Site"
@@ -49,7 +50,7 @@ class Alabama_Grabloid(Grabloid):
             user = driver.find_element_by_xpath('//input[contains(@name,"userName")]')
             user.send_keys(account)
             pw = driver.find_element_by_xpath('//input[contains(@name,"password")]')
-            pw.send_keys(self.password)
+            pw.send_keys(password)
             login_button = driver.find_element_by_xpath('//a[contains(text(),"login")]')
             login_button.click()
         
