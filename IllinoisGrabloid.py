@@ -31,9 +31,8 @@ import numpy as np
 import xlsxwriter as xl
 import multiprocessing as mp
 from multiprocessing.pool import Pool
-from grabloid import Grabloid
-from concurrent.futures import ProcessPoolExecutor
-
+from grabloid import Grabloid, push_note
+from pushover_complete import PushoverAPI
 
 
 class IllinoisGrabloid(Grabloid):
@@ -292,27 +291,27 @@ class IllinoisGrabloid(Grabloid):
                         temp_df['NDC']= ndc
                         temp_df['Program'] = program
                         master_df = master_df.append(temp_df)
-        frames = []
-        splitters = master_df.Program.unique().tolist()  
-        for splitter in splitters:
-            frame = master_df[master_df['Program']==splitter]
-            path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-            file_name = 'IL_'+splitter+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
-            if os.path.exists(path)==False:
-                os.makedirs(path)
-            else:
-                pass
-            os.chdir(path)
-            frame.to_excel(file_name, engine='xlsxwriter',index=False)
-        #now delete all the files that have been downloaded
-        deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
-        while len(deletes())>0:
-            for i in range(len(deletes())):
-                canary = driver.find_element_by_xpath('//input[@id="reportSub"]')
-                deletes()[0].click()
-                alert = driver.switch_to.alert
-                alert.accept()
-                wait.until(EC.staleness_of(canary))
+            frames = []
+            splitters = master_df.Program.unique().tolist()  
+            for splitter in splitters:
+                frame = master_df[master_df['Program']==splitter]
+                path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                file_name = 'IL_'+splitter+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
+                if os.path.exists(path)==False:
+                    os.makedirs(path)
+                else:
+                    pass
+                os.chdir(path)
+                frame.to_excel(file_name, engine='xlsxwriter',index=False)
+            #now delete all the files that have been downloaded
+            deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
+            while len(deletes())>0:
+                for i in range(len(deletes())):
+                    canary = driver.find_element_by_xpath('//input[@id="reportSub"]')
+                    deletes()[0].click()
+                    alert = driver.switch_to.alert
+                    alert.accept()
+                    wait.until(EC.staleness_of(canary))
             
         driver.close()
         os.chdir('O:\\')
@@ -406,20 +405,27 @@ def getReports(num,chunk):
             wait.until(EC.staleness_of(accept))
             success=1
     driver.close()    
-              
+
+
+
+def multi_grabber(i, chunks):             
+    processes = [mp.Process(target=getReports,args=(i,chunk)) for i,chunk in enumerate(chunks)]
+    for p in processes:
+        p.start()       
+    for p in processes:
+        p.join() 
         
 def main():
     grabber = IllinoisGrabloid()
     yq, username, password, master_dict, invoices = grabber.pull()      
     chunks = grabber.make_chunks(master_dict)
-    processes = [mp.Process(target=getReports,args=(i,chunk)) for i,chunk in enumerate(chunks)]
-    for p in processes:
-        p.start()       
-    for p in processes:
-        p.join()  
+    multi_grabber(enumerate(chunks))
   
-    
+
+
+
 if __name__=='__main__':
+    @push_note
     main()
 
 '''

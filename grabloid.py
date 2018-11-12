@@ -64,6 +64,20 @@ class Grabloid():
         newMail.display()
         newMail.Send()
         
+def push_note(func):
+    '''
+    separate function from Grabloid, used to notify Alec Burtner-Abt (primary dev)
+    of script failure or success while running bots for CMA team.  Leverages Pushover App
+    '''
+    def func_wrapper(*args,**kwargs):
+        try:
+            func(*args, **kwargs)
+            p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
+            p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot has successfully run.')
+        except:
+            p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot did not terminate properly.')
+    return func_wrapper
+
 
 if __name__=='__main__':
     print('Ok')
