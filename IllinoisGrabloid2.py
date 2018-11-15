@@ -33,11 +33,11 @@ from multiprocessing.pool import Pool
 from grabloid import Grabloid
 from concurrent.futures import ProcessPoolExecutor
 from IllinoisGrabloid import IllinoisGrabloid
-
+@push_note
 def main():
     grabber = IllinoisGrabloid()
     grabber.download_reports()
     grabber.driver.close()
-
+    grabber.cleanup()
 if __name__ == "__main__":
     main()

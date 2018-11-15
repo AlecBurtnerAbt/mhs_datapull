@@ -22,7 +22,7 @@ import gzip
 import shutil
 import pandas as pd
 import pprint
-
+from pushover_complete import PushoverAPI
 
 
 class Grabloid():
@@ -63,16 +63,32 @@ class Grabloid():
         newMail.To = recipient
         newMail.display()
         newMail.Send()
+    
+    def cleanup(self):
+        os.chdir('O:\\')
+        clean = 0
+        counter = 0
+        while clean ==0 and counter <10:
+            try:
+                os.removedirs(self.temp_folder_path)
+            except:
+                counter +=1
+                time.sleep(counter*1)
+                continue
+        
+        
+        
+        
         
 def push_note(func):
     '''
     separate function from Grabloid, used to notify Alec Burtner-Abt (primary dev)
     of script failure or success while running bots for CMA team.  Leverages Pushover App
     '''
+    p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
     def func_wrapper(*args,**kwargs):
         try:
             func(*args, **kwargs)
-            p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
             p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot has successfully run.')
         except:
             p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot did not terminate properly.')

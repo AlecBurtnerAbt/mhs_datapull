@@ -27,7 +27,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class LargeMagellanGrabloid(Grabloid):
     def __init__(self):
@@ -104,7 +104,9 @@ class LargeMagellanGrabloid(Grabloid):
         login_credentials = self.credentials
         driver = self.driver
         username = login_credentials.iloc[0,0]
-        password = login_credentials.iloc[0,1]        
+        password = login_credentials.iloc[0,1]   
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='D,E',dtype='str')
+        mapper = dict(zip(mapper['State Invoice ID'],mapper['Lilly Code']))
         #Login with provided credentials
         driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
         user_name = driver.find_element_by_xpath('//*[@id="username"]')
@@ -141,7 +143,7 @@ class LargeMagellanGrabloid(Grabloid):
                     report.click()
                     while 'claimdetails.xls' not in os.listdir():
                         time.sleep(1)
-                    file_name = S+'_'+program+'_'+code+'_'+str(qtr)+'Q'+str(yr)+'.xls'
+                    file_name = f'{state}_{program}_{self.qtr}Q{self.yr}_{code}.xls'
                     path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\'+S+'\\'+program+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
                     if os.path.exists(path)==False:
                         os.makedirs(path)
@@ -152,12 +154,12 @@ class LargeMagellanGrabloid(Grabloid):
                     pass
                 reports_obtained.append(file_name)
         driver.close()
-        os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
 
+@push_note
 def main():
     grabber = LargeMagellanGrabloid()
     grabber.pull()
+    grabber.cleanup()
     
 if __name__=='__main__':
     main()

@@ -241,56 +241,70 @@ class IllinoisGrabloid(Grabloid):
         rows = driver.find_elements_by_xpath('//table[@id="reportsResults"]/tbody/tr')
         rows = [row for row in rows if checker(row,'td//a//span[text()="Download Report"]')==True]
         pages = driver.find_elements_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="step"]')
+        num_pages = len(pages)+1
         #There is a long "flash to bang" for the preparation of the requested reports, 
         #so this will have to be a two part operation. 
+        master_df = pd.DataFrame()
         if len(rows)==0:
             pass
         else:
-            for page in pages:
-                if page.text=='1':
-                    pass
-                else:
-                    #now that we have rows only for where reports are ready we can move forward
-                    names = [x.find_element_by_xpath('td[1]').text for x in rows]
-                    links = [x.find_element_by_xpath('td//a[@href="#"]') for x in rows]
-                    master_df = pd.DataFrame()
-                    
-                    for name, link in zip(names, links):
-                        #get info for file name
-                        ndc = name.split(' ')[7]
-                        state = name.split(' ')[8]
-                        program = name.split(' ')[10]
-                        value = mapper[program]
-                        first_half = '_'.join(name.split(' ')[:5])
-                        second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
-                        download_name = '-'.join([first_half,second_half])+'.xls'
-                        #download the file
-                        flag = 0
-                        while flag ==0:
-                            link.click()
-                            counter = 0
-                            while download_name not in os.listdir() and counter<21:
-                                time.sleep(1)
-                                counter+=1
-                            if download_name not in os.listdir():
-                                pass
-                            else:
-                                flag = 1
-                        read_flag =0
-                        while read_flag==0:
-                            try:
-                                temp_df = pd.read_excel(download_name,skipfooter=3)
-                                read_flag=1
-                            except PermissionError as err:
-                                time.sleep(1)
-                        temp_df = temp_df.dropna(axis=0,how='all')
-                        if len(temp_df)==0:
-                            continue
-                        else:
+            for page in range(num_pages):
+                print(f'Working on page {page+1}')
+                #Redefine rows for each page
+                rows = driver.find_elements_by_xpath('//table[@id="reportsResults"]/tbody/tr')
+                rows = [row for row in rows if checker(row,'td//a//span[text()="Download Report"]')==True]
+                #get names of files and their links
+                names = [x.find_element_by_xpath('td[1]').text for x in rows]
+                links = [x.find_element_by_xpath('td//a[@href="#"]') for x in rows]
+                print('Looping through names and links...')              
+                for name, link in zip(names, links):
+                    #get info for file name
+                    ndc = name.split(' ')[7]
+                    state = name.split(' ')[8]
+                    program = name.split(' ')[10]
+                    value = mapper[program]
+                    first_half = '_'.join(name.split(' ')[:5])
+                    second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
+                    download_name = '-'.join([first_half,second_half])+'.xls'
+                    #download the file
+                    flag = 0
+                    print(f'Downloading {download_name}')
+                    while flag ==0:
+                        link.click()
+                        counter = 0
+                        while download_name not in os.listdir() and counter<21:
+                            time.sleep(1)
+                            counter+=1
+                        if download_name not in os.listdir():
                             pass
-                        temp_df['NDC']= ndc
-                        temp_df['Program'] = program
-                        master_df = master_df.append(temp_df)
+                        else:
+                            flag = 1
+                    print('Download success')
+                    read_flag =0                   
+                    while read_flag==0:
+                        print('Reading file...')
+                        try:
+                            temp_df = pd.read_excel(download_name,skipfooter=3)
+                            read_flag=1
+                        except PermissionError as err:
+                            time.sleep(1)
+                    temp_df = temp_df.dropna(axis=0,how='all')
+                    if len(temp_df)==0:
+                        continue
+                    else:
+                        pass
+                    temp_df['NDC']= ndc
+                    temp_df['Program'] = program
+                    master_df = master_df.append(temp_df)
+                    print(f'{download_name} read and appended to master df!')
+                if page != num_pages-1:
+                    print(f'Getting page {page}')
+                    next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
+                    next_page.click()
+                    wait.until(EC.staleness_of(next_page))
+                else:
+                    print('Done!')
+
             frames = []
             splitters = master_df.Program.unique().tolist()  
             for splitter in splitters:
@@ -312,6 +326,7 @@ class IllinoisGrabloid(Grabloid):
                     alert = driver.switch_to.alert
                     alert.accept()
                     wait.until(EC.staleness_of(canary))
+                    
             
         driver.close()
         os.chdir('O:\\')
@@ -415,6 +430,7 @@ def multi_grabber(i, chunks):
     for p in processes:
         p.join() 
         
+@push_note        
 def main():
     grabber = IllinoisGrabloid()
     yq, username, password, master_dict, invoices = grabber.pull()      
@@ -424,19 +440,10 @@ def main():
 
 
 
-if __name__=='__main__':
-    @push_note
+if __name__=='__main__':   
     main()
 
-'''
-getReports(1,chunks[1])
-import pickle
-with open('IL_chunks.pkl','wb') as p:
-    pickle.dump(master_dict,p)
 
-with open('IL_chunks.pkl','rb') as p:
-    master_dict = pickle.load(p)
-'''
 
 
 
