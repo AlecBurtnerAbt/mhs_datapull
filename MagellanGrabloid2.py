@@ -522,7 +522,7 @@ class MagellanGrabloid(Grabloid):
             else:
                 pass
         return  large_magellan
-@push_note
+@push_note(__file__)
 def main():
     grabber = MagellanGrabloid()
     cld, invoices = grabber.pull()

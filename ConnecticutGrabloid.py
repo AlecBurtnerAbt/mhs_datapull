@@ -44,7 +44,7 @@ class ConnecticutGrabloid(Grabloid):
         login_credentials = self.credentials
         wait = self.wait
         cld_programs = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='{}'.format(self.script), usecols='E,F',dtype='str')
-        login_credentials = login_credentials[login_credentials['Username']!='nan']
+        login_credentials = login_credentials.iloc[:2,:]
         user = list(login_credentials.Username)
         password = list(login_credentials.Password)
         yq = str(yr)+str(qtr)
@@ -215,12 +215,12 @@ class ConnecticutGrabloid(Grabloid):
                             search_button.click()
                             canary=0
                             try:
-                                canary = driver.find_element_by_xpath('//th[contains(text(),"*** No rows found ***")]')
+                                canary = driver.find_element_by_xpath('//th[contains(text(),"No rows found")]')
                                 canary = 1
                             except NoSuchElementException as ex:
                                 pass
                             if canary==1:
-                                continue
+                                break
                             donwload = driver.find_element_by_xpath('//a[@target="downloadPage"]')
                             donwload.click()
                             while len(driver.window_handles)>1:
@@ -242,7 +242,7 @@ class ConnecticutGrabloid(Grabloid):
                     time.sleep(1)
                 for file in os.listdir():
                     size = os.stat(file).st_size
-                    if size !=0:
+                    try:
                         temp = pd.read_csv(file,usecols=list(range(16)),skiprows=8,engine='python')
                         meta_data = pd.read_csv(file,usecols=[0,1],nrows=8,header=None,names=['Field','Value'],engine='python')
                         temp['NDC'] = ''.join(meta_data.Value[2].split('-'))
@@ -250,7 +250,7 @@ class ConnecticutGrabloid(Grabloid):
                         temp['Inv_Qtr'] = meta_data['Value'][1]
                         temp['Program'] = meta_data['Value'][0]
                         master_frame = master_frame.append(temp)
-                    else:
+                    except:
                         pass
                     os.remove(file)
     
@@ -276,14 +276,14 @@ class ConnecticutGrabloid(Grabloid):
                     continue
             driver.get('https://www.ctdssmap.com/CTPortal/Provider/Secure%20Site/tabId/56/Default.aspx')
         driver.close()
-        os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
         return pulled_invoices
+    
+@push_note
 def main():
     grabber = ConnecticutGrabloid()
     invoices = grabber.pull()
     grabber.send_message(invoices)
-
+    grabber.cleanup()
 if __name__=='__main__':
     main()
     

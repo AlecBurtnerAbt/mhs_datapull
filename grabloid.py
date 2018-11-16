@@ -23,7 +23,8 @@ import shutil
 import pandas as pd
 import pprint
 from pushover_complete import PushoverAPI
-
+import sys
+import traceback
 
 class Grabloid():
     
@@ -79,20 +80,30 @@ class Grabloid():
         
         
         
+
+def push_note(script):
+    def inner_push(func):
         
-def push_note(func):
-    '''
-    separate function from Grabloid, used to notify Alec Burtner-Abt (primary dev)
-    of script failure or success while running bots for CMA team.  Leverages Pushover App
-    '''
-    p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
-    def func_wrapper(*args,**kwargs):
-        try:
-            func(*args, **kwargs)
-            p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot has successfully run.')
-        except:
-            p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{grabber.script} bot did not terminate properly.')
-    return func_wrapper
+        '''
+        separate function from Grabloid, used to notify Alec Burtner-Abt (primary dev)
+        of script failure or success while running bots for CMA team.  Leverages Pushover App
+        '''
+        p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
+        
+        def func_wrapper(*args,**kwargs):
+            try:
+                func(*args, **kwargs)
+                p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{script} has successfully run.')
+            except:
+                
+                tb = sys.exc_info()[2]
+                tb = traceback.print_tb(tb)
+                err = sys.exc_info()[0]
+                print(err)
+                print (tb)
+                p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{script} did not terminate properly.\n {tb}')
+        return func_wrapper
+    return inner_push
 
 
 if __name__=='__main__':
