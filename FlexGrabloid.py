@@ -29,7 +29,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class FlexGrabloid(Grabloid):
     def __init__(self):
@@ -43,8 +43,8 @@ class FlexGrabloid(Grabloid):
         wait = self.wait
         mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Delaware', usecols=[0,1],dtype='str')
         login_credentials = self.credentials
-        password = self.password
-        username = self.username
+        password = self.credentials.iloc[0,1]
+        username = self.credentials.iloc[0,0]
         states = {
         'AC': 'Maryland',
         'AK': 'Alaska',
@@ -163,10 +163,10 @@ class FlexGrabloid(Grabloid):
                     
             
         
-        '''
-        The below snippet goes to the downloads and unzips all the downloads from the above loop.
-        After unzipping the file the zip file gets deleted. 
-        '''
+        
+        #The below snippet goes to the downloads and unzips all the downloads from the above loop.
+        #After unzipping the file the zip file gets deleted. 
+        
         flag = 0
         while flag==0:
             file = os.listdir()[0]
@@ -213,9 +213,19 @@ class FlexGrabloid(Grabloid):
                 invoices_obtained.append(file_name)
         driver.close()
         os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
         return invoices_obtained
-    
+        
+
+    def morph_required(self,invoices):
+        states = [x[:2] for x in invoices]
+        if 'NM' in states or 'MT' in states:
+            flag = 1
+        else:
+            flag = 0
+        return flag
+
+
+
     def morph_cld(self):
         paths = ['O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Montana\\',
                  'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\New Mexico\\']
@@ -253,10 +263,19 @@ class FlexGrabloid(Grabloid):
                         new_name = root+'\\'+file_name
                         mexontana_frame.to_excel(new_name,index=False)
                         os.remove(root+'\\'+file)
+
+
+
+@push_note(__file__)
 def main():
     grabber = FlexGrabloid()
     invoices = grabber.pull()
-    grabber.morph_cld()
+    flag = grabber.morph_required(invoices)
+    if flag==1:
+        grabber.morph_cld()
+    else:
+        pass
+    grabber.cleanup()
     grabber.send_message(invoices)
     
 if __name__=='__main__':

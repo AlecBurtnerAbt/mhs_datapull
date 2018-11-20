@@ -30,13 +30,15 @@ import gzip
 import numpy as np
 import xlsxwriter as xl
 from grabloid import Grabloid, push_note
+import pickle
+
 
 class MagellanGrabloid(Grabloid):
     def __init__(self):
         super().__init__(script='Magellan')
 
     
-    def pull(self):
+    def pull(self, efficient=True):
         yr = self.yr
         qtr = self.qtr
         driver = self.driver
@@ -151,8 +153,10 @@ class MagellanGrabloid(Grabloid):
 
         for root, dirs, files in os.walk(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Invoices'):
             already_have.append(root)
-        
-        already_have = [x.split('\\')[-3] for x in already_have if len(x.split('\\'))>9 and x.split('\\')[-1]=='Q'+str(qtr)]
+        if efficient ==True:
+            already_have = [x.split('\\')[-3] for x in already_have if len(x.split('\\'))>9 and x.split('\\')[-1]=='Q'+str(qtr)]
+        else:
+            already_have = []
 
         #Now starting to loop through the options and downloading the files
         #start of business line loop
@@ -438,6 +442,7 @@ class MagellanGrabloid(Grabloid):
         program_name = lambda: driver.find_element_by_id('mainForm:srchProgramName')
         program_name_select = lambda: Select(program_name()) 
         wait2 = WebDriverWait(driver,3)
+        large_magellan = []
         for item in cld_to_get:
             labeler_code = item[0]
             cld_program_name = item[1]
@@ -463,12 +468,14 @@ class MagellanGrabloid(Grabloid):
             print('submit clicked')
             #sometimes the site wants to email you when the data is ready, 
             #so switch to that notificaiton and accept if required
-            large_magellan = 0
+            
             try:
                 alert = driver.switch_to.alert
+                large_magellan.append(item)
                 alert.accept()
-                email_flag=1
-                large_magellan =1
+                email_flag = 1
+                print(f'{item[1]} added to Large Reports List')
+                
             except:       
                 pass
             #If for some reason the CLD doesn't exist detect the error message
@@ -521,14 +528,21 @@ class MagellanGrabloid(Grabloid):
                 shutil.move('claimdetails.xls',path+new_name)
             else:
                 pass
+        driver.close()
         return  large_magellan
+    
+    
+
+    
+    
+    
 @push_note(__file__)
 def main():
     grabber = MagellanGrabloid()
-    cld, invoices = grabber.pull()
+    cld, invoices = grabber.pull(efficient=False)
     large_magellan = grabber.pull_cld(cld)
     grabber.send_message(invoices)
-    grabber.cleanup()
+    
 if __name__=='__main__':
     main()
 

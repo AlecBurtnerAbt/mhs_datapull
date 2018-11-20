@@ -107,6 +107,10 @@ class LargeMagellanGrabloid(Grabloid):
         password = login_credentials.iloc[0,1]   
         mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='D,E',dtype='str')
         mapper = dict(zip(mapper['State Invoice ID'],mapper['Lilly Code']))
+        mapper2 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,F',dtype='str')
+        mapper2 = dict(zip(mapper2['State Invoice ID'],mapper2['CLD Programs']))
+        mapper3 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Programs', usecols='B,D',dtype='str')
+        mapper3 = dict(zip(mapper3['State Invoice Id (e.g. OBRA 1000 etc)'],mapper3['State']))
         #Login with provided credentials
         driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
         user_name = driver.find_element_by_xpath('//*[@id="username"]')
@@ -133,18 +137,22 @@ class LargeMagellanGrabloid(Grabloid):
         reports_obtained=[]
         for page in page_options:
             pages_select().select_by_visible_text(page)
-            reports =driver.find_elements_by_xpath('//table[@id="mainForm:claimsTable"]//input[@type="submit"]')
-            codes = [x.text for x in driver.find_elements_by_xpath('//table[@id="mainForm:claimsTable"]//tr//td[2]')][1:]
-            programs =   [x.text for x in driver.find_elements_by_xpath('//table[@id="mainForm:claimsTable"]//tr//td[3]')][1:]      
-            states2 = [x.text[:2] for x in driver.find_elements_by_xpath('//table[@id="mainForm:claimsTable"]//tr//td[3]')][1:] 
-            for report, code, program, state in zip(reports,codes,programs,states2):
+            reports = driver.find_elements_by_xpath('//table[@id="mainForm:claimsTable"]/tbody/tr')
+            for report in reports:
+                labeler = report.text.split(' ')[0]
+                report_id = report.text.split(' ')[1]
+                program = mapper[report_id]
+                directory = mapper2[report_id]
+                state = mapper3[report_id]
+                directory = directory.replace(state,'').strip()
+                full_state = states[state]
+                download_button = report.find_element_by_xpath('.//input')
                 try:
-                    S = states[state]
-                    report.click()
+                    download_button.click()
                     while 'claimdetails.xls' not in os.listdir():
                         time.sleep(1)
-                    file_name = f'{state}_{program}_{self.qtr}Q{self.yr}_{code}.xls'
-                    path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\'+S+'\\'+program+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                    file_name = f'{state}_{program}_{qtr}Q{yr}_{labeler}.xls'
+                    path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\{full_state}\\{directory}\\{yr}\\Q{qtr}\\'
                     if os.path.exists(path)==False:
                         os.makedirs(path)
                     else:
@@ -155,7 +163,7 @@ class LargeMagellanGrabloid(Grabloid):
                 reports_obtained.append(file_name)
         driver.close()
 
-@push_note
+@push_note(__file__)
 def main():
     grabber = LargeMagellanGrabloid()
     grabber.pull()

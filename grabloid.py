@@ -82,13 +82,14 @@ class Grabloid():
         
 
 def push_note(script):
+    p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
     def inner_push(func):
         
         '''
         separate function from Grabloid, used to notify Alec Burtner-Abt (primary dev)
         of script failure or success while running bots for CMA team.  Leverages Pushover App
         '''
-        p = PushoverAPI('a4u1afrfsocorp6r1cdes1ydn5g2m6')
+        
         
         def func_wrapper(*args,**kwargs):
             try:
@@ -101,7 +102,7 @@ def push_note(script):
                 err = sys.exc_info()[0]
                 print(err)
                 print (tb)
-                p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{script} did not terminate properly.\n {tb}')
+                p.send_message('ukdn5gtjkaejnd6qmwy42ej2yofmsz', f'{script} did not terminate properly.\n {traceback.print_tb(sys.exc_info()[2])}')
         return func_wrapper
     return inner_push
 

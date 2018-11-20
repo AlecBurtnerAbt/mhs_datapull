@@ -430,7 +430,7 @@ def multi_grabber(i, chunks):
     for p in processes:
         p.join() 
         
-@push_note        
+@push_note(__file__)        
 def main():
     grabber = IllinoisGrabloid()
     yq, username, password, master_dict, invoices = grabber.pull()      
