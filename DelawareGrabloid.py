@@ -29,7 +29,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class DelawareGrabloid(Grabloid):
     def __init__(self):
@@ -160,8 +160,6 @@ class DelawareGrabloid(Grabloid):
                 q_flag=1
             except MaxRetryError as err:
                 continue
-        os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
         return(invoices)
         
     def morph_invoices(self):
@@ -201,10 +199,14 @@ class DelawareGrabloid(Grabloid):
                         placement_path = root+'\\'+file_name
                         df.to_excel(placement_path,index=False)
                         os.remove(root+'\\'+file)        
+                        
+@push_note(__file__)
 def main():
     grabber = DelawareGrabloid()
     invoices = grabber.pull()
-    grabber.send_message(invoices)
     grabber.morph_invoices()
+    grabber.cleanup()
+    grabber.send_message(invoices)
+    
 if __name__ =='__main__':
     main()

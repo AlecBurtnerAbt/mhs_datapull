@@ -539,7 +539,7 @@ class MagellanGrabloid(Grabloid):
 @push_note(__file__)
 def main():
     grabber = MagellanGrabloid()
-    cld, invoices = grabber.pull(efficient=False)
+    cld, invoices = grabber.pull(efficient=True) 
     large_magellan = grabber.pull_cld(cld)
     grabber.send_message(invoices)
     

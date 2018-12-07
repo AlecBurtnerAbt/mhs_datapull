@@ -28,7 +28,7 @@ import traceback
 
 class Grabloid():
     
-    def __init__(self,script):
+    def __init__(self,script,use_chrome=True):
         os.chdir('O:\\')
         self.script = script
         self.temp_folder_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\{self.script}\\'
@@ -38,7 +38,10 @@ class Grabloid():
          'plugins.always_open_pdf_externally':True,
          'download.prompt_for_download':False}
         chrome_options.add_experimental_option("prefs",prefs)
-        self.driver = webdriver.Chrome(executable_path=driver_path+"chromedriver.exe", options=chrome_options)
+        if use_chrome == True:
+            self.driver = webdriver.Chrome(executable_path=driver_path+"chromedriver.exe", options=chrome_options)
+        else: 
+            pass
         self.yr = pd.read_excel(driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="A").iloc[0,0]
         self.qtr = pd.read_excel(driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="B").iloc[0,0]
         self.credentials = pd.read_excel(driver_path+"automation_parameters.xlsx", sheet_name= f"{self.script}" ,usecols="A:B")

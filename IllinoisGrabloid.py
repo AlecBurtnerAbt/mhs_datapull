@@ -93,11 +93,11 @@ class IllinoisGrabloid(Grabloid):
         
         #now begin looping
         invoices_obtained = []
-        master_dict = dict.fromkeys(options)
+        master_list = []
         for label in options:
             labeler_select().select_by_visible_text(label)
             for report in list(mapper.keys()):
-                report_dict = {}
+                
                 submit_button = driver.find_element_by_xpath('//input[@value="Submit"]')
                 types_select().select_by_visible_text(report)
                 time_stamp().send_keys(yq)
@@ -150,7 +150,7 @@ class IllinoisGrabloid(Grabloid):
                                 with open(file_name) as F:
                                     lines = F.readlines()
                                     ndcs = list(set([x[6:17] for x in lines]))
-                                    report_dict.update({report:ndcs})
+                                    master_list.append((label,report,ndcs))
                                     read_success=1
                             except:
                                 pass
@@ -175,14 +175,54 @@ class IllinoisGrabloid(Grabloid):
                             time.sleep(1)
                         except PermissionError as err:
                             time.sleep(1)
-            master_dict.update({label:report_dict})         
+                            
         driver.close()
-        return yq, username, password, master_dict, invoices_obtained
+        return yq, username, password, master_list, invoices_obtained
     
     
     
     
-    
+    def delete_old_reports(self):
+        yr = self.yr
+        qtr = self.qtr
+        driver = self.driver
+        wait = self.wait
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols='D,E',dtype='str')
+        mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
+        time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
+        yr = time_stuff.iloc[0,0]
+        qtr = time_stuff.iloc[0,1]
+        yq=str(yr)+str(qtr)
+        login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols=[0,1],dtype='str')
+        username = login_credentials.iloc[0,0]
+        password = login_credentials.iloc[0,1]
+        driver.get(r'https://rsp.ilgov.emdeon.com/RebateServicesPortal/login/home?goto=http://rsp.ilgov.emdeon.com/RebateServicesPortal/')
+        wait2 = WebDriverWait(driver,2)
+        driver.implicitly_wait(20)
+        #find username and password and pass the login credentials
+        
+        user = driver.find_element_by_xpath('//input[@id="username"]')
+        user.send_keys(username)
+        pw = driver.find_element_by_xpath('//input[@id="password"]')
+        pw.send_keys(password)
+        login = driver.find_element_by_xpath('//input[@value="Login"]')
+        login.click()
+        
+        #Now to navigate past the next page
+        
+        accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
+        accept.click()
+        reports_tab = driver.find_element_by_xpath('//a[text()="Reports"]')       
+        reports_tab.click() 
+        deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
+        while len(deletes())>0:
+            for i in range(len(deletes())):
+                canary = driver.find_element_by_xpath('//input[@id="reportSub"]')
+                deletes()[0].click()
+                alert = driver.switch_to.alert
+                alert.accept()
+                wait.until(EC.staleness_of(canary))
+        
     def download_reports(self):
         os.chdir('C:/Users/')
         chromeOptions = webdriver.ChromeOptions()
@@ -221,7 +261,7 @@ class IllinoisGrabloid(Grabloid):
         accept = wait.until(EC.element_to_be_clickable((By.ID,'terms')))
         accept.click()
         reports_tab = driver.find_element_by_xpath('//a[text()="Reports"]')       
-        reports_tab.click()                
+        reports_tab.click()              
         report = lambda: driver.find_element_by_xpath('//select[@id="reportList"]')
         report_select = lambda: Select(report())
         
@@ -245,11 +285,19 @@ class IllinoisGrabloid(Grabloid):
         #There is a long "flash to bang" for the preparation of the requested reports, 
         #so this will have to be a two part operation. 
         master_df = pd.DataFrame()
+        def check_for_next():
+            try:
+                next_link = driver.find_element_by_xpath('//a[text()="Next"]')
+                return True
+            except NoSuchElementException as ex:
+                return False
         if len(rows)==0:
             pass
         else:
-            for page in range(num_pages):
-                print(f'Working on page {page+1}')
+            while check_for_next()==True:
+                current_page = driver.find_element_by_xpath('//span[@class="currentStep"]')
+                current_page_num = current_page.text
+                print(f'Working on page {current_page_num}')
                 #Redefine rows for each page
                 rows = driver.find_elements_by_xpath('//table[@id="reportsResults"]/tbody/tr')
                 rows = [row for row in rows if checker(row,'td//a//span[text()="Download Report"]')==True]
@@ -271,10 +319,7 @@ class IllinoisGrabloid(Grabloid):
                     print(f'Downloading {download_name}')
                     while flag ==0:
                         link.click()
-                        counter = 0
-                        while download_name not in os.listdir() and counter<21:
-                            time.sleep(1)
-                            counter+=1
+                        time.sleep(5)
                         if download_name not in os.listdir():
                             pass
                         else:
@@ -297,13 +342,12 @@ class IllinoisGrabloid(Grabloid):
                     temp_df['Program'] = program
                     master_df = master_df.append(temp_df)
                     print(f'{download_name} read and appended to master df!')
-                if page != num_pages-1:
-                    print(f'Getting page {page}')
-                    next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
-                    next_page.click()
-                    wait.until(EC.staleness_of(next_page))
-                else:
-                    print('Done!')
+                    print(f'Getting next page!')
+                next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
+                next_page.click()
+                wait.until(EC.staleness_of(next_page))
+
+            print('Done!')
 
             frames = []
             splitters = master_df.Program.unique().tolist()  
@@ -318,6 +362,7 @@ class IllinoisGrabloid(Grabloid):
                 os.chdir(path)
                 frame.to_excel(file_name, engine='xlsxwriter',index=False)
             #now delete all the files that have been downloaded
+
             deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
             while len(deletes())>0:
                 for i in range(len(deletes())):
@@ -330,20 +375,20 @@ class IllinoisGrabloid(Grabloid):
             
         driver.close()
         os.chdir('O:\\')
-        os.removedirs(self.temp_path_folder)   
+
         
     def make_chunks(self,master_dict):
         #Break the information for each report down into 
         reports = []
-        for key in master_dict.keys():
-            for key2 in master_dict[key].keys():
-                for value in master_dict[key][key2]:
-                    if len(value)==0:
-                        continue
-                    else:
-                        report = (key,key2,value)
-                        reports.append(report)
-        n = round(len(reports)/(mp.cpu_count()-1))
+        for tupe in master_dict:
+            for ndc in tupe[2]:
+                if len(ndc)==0:
+                    continue
+                else:
+                    report = (tupe[0],tupe[1],ndc)
+                    reports.append(report)
+        import math
+        n = math.ceil(len(reports)/8)
         chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
         return chunks
 
@@ -414,16 +459,17 @@ def getReports(num,chunk):
                 
                 accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
                 accept.click()
+                wait.until(EC.staleness_of(accept))
+                success=1
             except:
                 driver.refresh()
                 
-            wait.until(EC.staleness_of(accept))
-            success=1
+            
     driver.close()    
 
 
 
-def multi_grabber(i, chunks):             
+def multi_grabber(chunks):             
     processes = [mp.Process(target=getReports,args=(i,chunk)) for i,chunk in enumerate(chunks)]
     for p in processes:
         p.start()       
@@ -433,9 +479,10 @@ def multi_grabber(i, chunks):
 @push_note(__file__)        
 def main():
     grabber = IllinoisGrabloid()
+    #grabber.delete_old_reports()
     yq, username, password, master_dict, invoices = grabber.pull()      
     chunks = grabber.make_chunks(master_dict)
-    multi_grabber(enumerate(chunks))
+    multi_grabber(chunks)
   
 
 

@@ -227,15 +227,27 @@ class FlexGrabloid(Grabloid):
 
 
     def morph_cld(self):
-        paths = ['O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Montana\\',
-                 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\New Mexico\\']
+        paths = [f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Montana\\',
+                 f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\New Mexico\\']
         data = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Raw Text\Montana New Mexico-Conduent Text CLD\DRAMS NCPDP Format.xls',skiprows=2)
         column_names = data.iloc[:,0]
         data_cuts = [(int(start)-1,int(end)-1) for start,end in zip(data.Start,data.End)]
         for path in paths:
+            if os.path.exists(path)==False:
+                continue
+            else:
+                pass
             os.chdir(path)
             for root, folders, files in os.walk(path):
+                if f'Q{self.qtr}' not in root:
+                    continue
+                else:
+                    pass
                 for file in files:
+                    if len(os.listdir(path))==0:
+                        continue
+                    else:
+                        pass
                     try:
                         data = []
                         with open(root+'\\'+file) as F:

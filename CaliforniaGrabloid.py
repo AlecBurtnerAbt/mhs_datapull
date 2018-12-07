@@ -31,7 +31,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class CaliforniaGrabloid(Grabloid):
     def __init__(self):
@@ -41,8 +41,8 @@ class CaliforniaGrabloid(Grabloid):
         
     def pull(self):
         driver = self.driver
-        yr = self.yr
-        qtr = self.qtr
+        yr = str(self.yr)
+        qtr = str(self.qtr)
         program_mapper = self.mapper
         login_credentials = self.credentials
         wait = self.wait
@@ -100,7 +100,7 @@ class CaliforniaGrabloid(Grabloid):
             inv_year = d[0].split('=')[1]
             inv_qtr = d[1].split('=')[1]
             file_name = 'ALL_L'+prefix+'_Q'+inv_qtr+'_Y'+inv_year+'.zip'
-            all_report = driver.find_element_by_partial_link_text('ALL')
+            all_report = driver.find_element_by_xpath(f'//a[contains(text(),"Q{qtr}_Y{yr}") and contains(text(),"ALL") ]')
             while file_name not in os.listdir(): 
                 all_report.click()
                 time.sleep(5)
@@ -251,14 +251,31 @@ class CaliforniaGrabloid(Grabloid):
                         got_it = 0
                         while counter <11 and got_it ==0:
                             while (any(map((lambda x: '.crd' in x),os.listdir()))==True or any(map((lambda x: '.tmp' in x),os.listdir()))==True):
-                                time.sleep(1)
+                                time.sleep(counter*1)
                                 counter+=1
                             got_it=1
                         files = os.listdir()
-                        latest_file = max(os.listdir(),key=os.path.getctime)
+                        temp_flag =1
+                        while temp_flag ==1:
+                            latest_file = max(os.listdir(),key=os.path.getctime)
+                            if '.tmp' in latest_file:
+                                time.sleep(1)
+                                continue
+                            elif '.crd' in latest_file:
+                                time.sleep(1)
+                                continue
+                            else:
+                                temp_flag = 0
+                        
                         file_name = mapper[program]+'_'+yr+'_'+qtr+'_'+prefix+'.pdf'
                         path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\'+'Invoices\\California\\'+mapper[program]+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-                        shutil.move(latest_file,path+file_name)
+                        transfer_success = 0
+                        while transfer_success==0:
+                            try:
+                                shutil.move(latest_file,path+file_name)
+                                transfer_success=1
+                            except PermissionError as err:
+                                time.sleep(1)
                         driver.get(url)
                         if counter<11:                            
                             success_flag=1
@@ -514,12 +531,14 @@ class CaliforniaGrabloid(Grabloid):
                             return_to_transactions = driver.find_element_by_xpath('//*[@id="frmRet"]/input')
                             return_to_transactions.click()
         driver.close()
-        os.removedirs(self.temp_folder_path)
         return invoices_obtained
+    
+@push_note(__file__)
 def main():
     grabber = CaliforniaGrabloid()
     invoices_obtained = grabber.pull()
     grabber.send_message(invoices_obtained)
+    grabber.cleanup()
 
 if __name__=='__main__':
     main()                                                   

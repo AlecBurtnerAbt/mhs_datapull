@@ -30,10 +30,10 @@ import numpy as np
 import xlsxwriter as xl
 import multiprocessing as mp
 from multiprocessing.pool import Pool
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 from concurrent.futures import ProcessPoolExecutor
 from IllinoisGrabloid import IllinoisGrabloid
-@push_note
+@push_note(__file__)
 def main():
     grabber = IllinoisGrabloid()
     grabber.download_reports()

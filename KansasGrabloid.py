@@ -143,7 +143,7 @@ driver = a.driver
 username = a.credentials.iloc[0,0]
 password = a.credentials.iloc[0,1]            
 wait = a.wait      
-            
+a = driver.execute_script("return validateUser()")
             
             
             

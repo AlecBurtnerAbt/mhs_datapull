@@ -30,7 +30,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class TennesseeGrabloid(Grabloid):
     
@@ -237,8 +237,11 @@ class TennesseeGrabloid(Grabloid):
         
         
         """
+        Switching to CLD data
         Sets dropdown default to null
         """
+        claim_data_link = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[text()="Claims Details"]')))
+        claim_data_link.click()
         labeler = lambda: driver.find_element_by_id('mainForm:labelerCode')
         labeler_select = lambda: Select(labeler())
         codes = [x.text for x in labeler_select().options if len(x.text)>1]
@@ -304,13 +307,13 @@ class TennesseeGrabloid(Grabloid):
                         pass
                     new_name ='TN_{}_{}Q{}_{}.xls'.format(mapper[program],qtr,yr,code)
                     shutil.move('claimdetails.xls',path+new_name)
-        os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
         return invoice_labels
 
+@push_note(__file__)
 def main():
     grabber = TennesseeGrabloid()
     invoices = grabber.pull()
+    grabber.cleanup()
     grabber.send_message(invoices)
     
 if __name__=='__main__':

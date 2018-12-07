@@ -29,7 +29,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 from pandas.errors import EmptyDataError
 class Alabama_Grabloid(Grabloid):
     def __init__(self):
@@ -255,7 +255,7 @@ class Alabama_Grabloid(Grabloid):
                     empty_df = pd.DataFrame(data)
                     new_name = root+'\\'+file[:-3]+'xlsx'
                     empty_df.to_excel(new_name, engine='xlsxwriter')
-                    
+@push_note(__file__)                     
 def main():
     grabber = Alabama_Grabloid()
     invoices = grabber.pull()

@@ -29,7 +29,7 @@ import pprint
 import gzip
 import numpy as np
 import xlsxwriter as xl
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class NorthDakotaGrabloid(Grabloid):
     def __init__(self):
@@ -121,7 +121,12 @@ class NorthDakotaGrabloid(Grabloid):
             [raw.append(x.text.strip().replace('\n','_')) for x in rows]
             P = [x.split('_')[3] for x in raw]
             L = [x.split('_')[4] for x in raw]
-            file_names = ['ND_{}_{}Q{}_{}'.format(mapper[x],qtr,yr,y) for x,y in zip(P,L)] 
+            file_names = []
+            for name, labeler in zip(P,L):
+                try:
+                    file_names.append('ND_{}_{}Q{}_{}'.format(mapper[name],qtr,yr,labeler))
+                except KeyError as err:
+                    file_names.append(f'{name.replace(" ","_")}_{labeler}')
             #using the html tags I'll make a dictionary to help name files
             keys = [x.split('_')[0] for x in raw]
             mapp = dict(zip(keys,file_names))
@@ -143,14 +148,14 @@ class NorthDakotaGrabloid(Grabloid):
         driver.close()
         
         return invoices_obtained
-    
+@push_note(__file__)    
 def main():
     grabber = NorthDakotaGrabloid()
     invoices = grabber.pull()
     grabber.send_message(invoices)
 
 if __name__=='__main__':
-    main()    
+    main()     
     
 
 

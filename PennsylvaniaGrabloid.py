@@ -195,87 +195,15 @@ class PennsylvaniaGrabloid(Grabloid):
                     else:
                         report = (key,key2,value)
                         reports.append(report)
-        n = round(len(reports)/(mp.cpu_count()-1))
+        import math
+        n = math.ceil(len(reports)/6)
         chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
         return chunks
     #write the function for multi threading
     
     
     
-    def getReports(self,num,chunk):
-        print('Working on chunk: '+str(num))
-        time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
-        yr = time_stuff.iloc[0,0]
-        qtr = time_stuff.iloc[0,1]
-        yq=str(yr)+str(qtr)
-        login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Pennsylvania', usecols='A,B',dtype='str')
-        username = login_credentials.iloc[0,0]
-        password = login_credentials.iloc[0,1]
-        os.chdir('C:/Users/')
-        chromeOptions = webdriver.ChromeOptions()
-        prefs = {'download.default_directory':'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder',
-             'plugins.always_open_pdf_externally':True,
-             'download.prompt_for_download':False}
-        chromeOptions.add_experimental_option('prefs',prefs)
-        #chromeOptions.add_argument('--headless')
-        #chromeOptions.add_argument('--disable-gpu')
-        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
-        os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder')
-        #Login with provided credentials
-        driver.get('https://rsp.pagov.changehealthcare.com/RebateServicesPortal/login/home?goto=http://rsp.pagov.changehealthcare.com/RebateServicesPortal/')   
-        
-        #Now login
-        
-        user = driver.find_element_by_xpath('//input[@id="username"]')
-        user.send_keys(username)
-        pass_word = driver.find_element_by_id('password')
-        pass_word.send_keys(password)
-        login = driver.find_element_by_id('submit')
-        login.click()
-        
-        wait = WebDriverWait(driver,10)
-        wait2 = WebDriverWait(driver,2)
-        accept = wait.until(EC.element_to_be_clickable((By.ID,'terms')))
-        accept.click()
-        reports_tab = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[text()="Reports"]')))       
-        reports_tab.click()           
-        report = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@id="reportList"]')))
-        report_select = lambda: Select(report())
-        #Now starting iterating through the chunk
-        for label, program, ndc in chunk:
-            success = 0
-            while success==0:
-                try:
-                    report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
-                    select_report = Select(report)        
-                    select_report.select_by_index(1)
-                    
-                    ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
-                    ndc_in.send_keys(ndc)
-                    
-                    docType = driver.find_element_by_xpath('//select[@name="docType"]')
-                    select_docType = Select(docType)
-                    select_docType.select_by_visible_text(program.replace('_',' '))
-                    
-                    rpu = driver.find_element_by_xpath('//input[@name="rpuStart"]')
-                    rpu.send_keys(yq)
-                    
-                    submit_button= driver.find_element_by_xpath('//input[@value="Submit"]')
-                    submit_button.click()
-                    
-                    accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
-                    accept.click()
-                except TimeoutException as ex:
-                    driver.refresh()
-                    
-                wait.until(EC.staleness_of(accept))
-                soup = BeautifulSoup(driver.page_source,'html.parser')
-                Reports = [x.text.strip() for x in soup.find_all('td')]
-                if any(map((lambda x: (ndc+' PA '+yq+' '+program) in x),Reports)):
-                    success=1
-                else:
-                    pass
-        driver.close()
+    
         
     def download_reports(self):
         os.chdir('C:/Users/')
@@ -402,13 +330,89 @@ class PennsylvaniaGrabloid(Grabloid):
             
         driver.close()
         os.chdir('O:\\')
-        os.removedirs(self.temp_path_folder)
 
+
+
+def getReports(num,chunk):
+        print('Working on chunk: '+str(num))
+        time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
+        yr = time_stuff.iloc[0,0]
+        qtr = time_stuff.iloc[0,1]
+        yq=str(yr)+str(qtr)
+        login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Pennsylvania', usecols='A,B',dtype='str')
+        username = login_credentials.iloc[0,0]
+        password = login_credentials.iloc[0,1]
+        os.chdir('C:/Users/')
+        chromeOptions = webdriver.ChromeOptions()
+        prefs = {'download.default_directory':'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder',
+             'plugins.always_open_pdf_externally':True,
+             'download.prompt_for_download':False}
+        chromeOptions.add_experimental_option('prefs',prefs)
+        #chromeOptions.add_argument('--headless')
+        #chromeOptions.add_argument('--disable-gpu')
+        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+        os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder')
+        #Login with provided credentials
+        driver.get('https://rsp.pagov.changehealthcare.com/RebateServicesPortal/login/home?goto=http://rsp.pagov.changehealthcare.com/RebateServicesPortal/')   
+        
+        #Now login
+        
+        user = driver.find_element_by_xpath('//input[@id="username"]')
+        user.send_keys(username)
+        pass_word = driver.find_element_by_id('password')
+        pass_word.send_keys(password)
+        login = driver.find_element_by_id('submit')
+        login.click()
+        
+        wait = WebDriverWait(driver,10)
+        wait2 = WebDriverWait(driver,2)
+        accept = wait.until(EC.element_to_be_clickable((By.ID,'terms')))
+        accept.click()
+        reports_tab = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[text()="Reports"]')))       
+        reports_tab.click()           
+        report = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@id="reportList"]')))
+        report_select = lambda: Select(report())
+        #Now starting iterating through the chunk
+        for label, program, ndc in chunk:
+            success = 0
+            while success==0:
+                try:
+                    report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
+                    select_report = Select(report)        
+                    select_report.select_by_index(1)
+                    
+                    ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
+                    ndc_in.send_keys(ndc)
+                    
+                    docType = driver.find_element_by_xpath('//select[@name="docType"]')
+                    select_docType = Select(docType)
+                    select_docType.select_by_visible_text(program.replace('_',' '))
+                    
+                    rpu = driver.find_element_by_xpath('//input[@name="rpuStart"]')
+                    rpu.send_keys(yq)
+                    
+                    submit_button= driver.find_element_by_xpath('//input[@value="Submit"]')
+                    submit_button.click()
+                    
+                    accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
+                    accept.click()
+                except TimeoutException as ex:
+                    driver.refresh()
+                    
+                wait.until(EC.staleness_of(accept))
+                soup = BeautifulSoup(driver.page_source,'html.parser')
+                Reports = [x.text.strip() for x in soup.find_all('td')]
+                if any(map((lambda x: (ndc+' PA '+yq+' '+program) in x),Reports)):
+                    success=1
+                else:
+                    pass
+        driver.close()
+        
 def main():
     grabber = PennsylvaniaGrabloid()
     yq, username, password, master_dict, invoices = grabber.stepOne()      
     chunks = grabber.make_chunks(master_dict)
-    processes = [mp.Process(target=grabber.getReports,args=(i,chunk)) for i,chunk in enumerate(chunks)]
+    processes = [mp.Process(target=getReports,args=(i,chunk)) for i,chunk in enumerate(chunks)]
     for p in processes:
         p.start()       
     for p in processes:
