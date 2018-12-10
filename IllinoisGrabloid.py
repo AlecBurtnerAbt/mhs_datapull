@@ -306,14 +306,29 @@ class IllinoisGrabloid(Grabloid):
                 links = [x.find_element_by_xpath('td//a[@href="#"]') for x in rows]
                 print('Looping through names and links...')              
                 for name, link in zip(names, links):
+                    #Jcode file names are different lengths, have to adjust which
+                    #parts of the web element are turned into the name
+                    if 'JCode' in name:
+                        ndc = name.split(' ')[5]
+                        state = name.split(' ')[6]
+                        program = name.split(' ')[-1]
+                        value = mapper[program]
+                        first_half = '_'.join(name.split(' ')[:3])
+                        second_half = '-'.join([ndc,state,yq,value])
+                        download_name = '-'.join([first_half,second_half])+'.xls'
+                    else:
                     #get info for file name
-                    ndc = name.split(' ')[7]
-                    state = name.split(' ')[8]
-                    program = name.split(' ')[10]
-                    value = mapper[program]
-                    first_half = '_'.join(name.split(' ')[:5])
-                    second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
-                    download_name = '-'.join([first_half,second_half])+'.xls'
+                        ndc = name.split(' ')[7]
+                        state = name.split(' ')[8]
+                        program = name.split(' ')[10]
+                        value = mapper[program]
+                        first_half = '_'.join(name.split(' ')[:5])
+                        second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
+                        download_name = '-'.join([first_half,second_half])+'.xls'
+                    if download_name in os.listdir():
+                        continue
+                    else:
+                        pass
                     #download the file
                     flag = 0
                     print(f'Downloading {download_name}')
@@ -342,7 +357,7 @@ class IllinoisGrabloid(Grabloid):
                     temp_df['Program'] = program
                     master_df = master_df.append(temp_df)
                     print(f'{download_name} read and appended to master df!')
-                    print(f'Getting next page!')
+                print(f'Getting next page!')
                 next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
                 next_page.click()
                 wait.until(EC.staleness_of(next_page))
