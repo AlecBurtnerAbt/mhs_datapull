@@ -403,7 +403,7 @@ class IllinoisGrabloid(Grabloid):
                     report = (tupe[0],tupe[1],ndc)
                     reports.append(report)
         import math
-        n = math.ceil(len(reports)/8)
+        n = math.ceil(len(reports)/4)
         chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
         return chunks
 
@@ -494,7 +494,7 @@ def multi_grabber(chunks):
 @push_note(__file__)        
 def main():
     grabber = IllinoisGrabloid()
-    #grabber.delete_old_reports()
+    grabber.delete_old_reports()
     yq, username, password, master_dict, invoices = grabber.pull()      
     chunks = grabber.make_chunks(master_dict)
     multi_grabber(chunks)
