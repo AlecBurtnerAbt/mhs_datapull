@@ -96,7 +96,7 @@ class OklahomaGrabloid(Grabloid):
                 if 'Claims Detail Data' in name:
                     program = 'CMS'
                     file_name = 'OK_'+program+'_'+code+'_'+str(qtr)+'Q'+str(yr)+file[-4:]
-                    path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Oklahoma\\'+program+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                    path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Oklahoma\\'+program+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'                   
                 else:
                     if 'Provider' in name:
                         os.remove(file)
@@ -131,6 +131,29 @@ class OklahomaGrabloid(Grabloid):
             os.removedirs(self.land_folder)
         except:
             print("Couldn't delete landing folder")
+        # now turn all CLD data into excel files
+        data_cuts = pd.read_excel("O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\automation_parameters.xlsx", usecols='E,F,G', sheet_name='Oklahoma')
+        path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Oklahoma\\'
+        #Walks through Oklahoma directory
+        for root, folders, files in os.walk(path):
+            for file in files:
+                data = pd.DataFrame()
+                #Check if year is in root 
+                if str(yr) in root:
+                    #Check if quarter is in root
+                    if str(qtr) in root:
+                        if '.txt' in file:
+                            #openfile, read lines, append to empty dataframe
+                            with open(os.path.join(root,file),'rb') as f:
+                                lines = f.readlines()
+                                lines = [line.decode('utf-8') for line in lines]
+                                for line in lines:
+                                    line = [y.strip() for y in line.split('|')]
+                                    row = pd.DataFrame(columns=data_cuts['field_name'])
+                                    row.loc[0,:] = line
+                                    data = data.append(row)
+                            #Write final dataframe to file
+                            data.to_excel(f'{os.path.join(root,file[:-4])}.xlsx',index=False)
         return invoices_obtained
 
 def main():

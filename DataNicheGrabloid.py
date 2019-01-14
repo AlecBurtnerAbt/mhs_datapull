@@ -134,15 +134,22 @@ class DataNicheGrabloid(Grabloid):
             ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
             print(f'Clicked on {state}')
             #Identify programs and begin program loop            
-            programs = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]/div[@ng-repeat="program in programs"]/div/div[contains(@class,"myInvoiceB")]/div[9]/button')
+            programs = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//button[@ng-click="moveToVerify(program, 'dnacld');"]''')
+            programs_names = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//div[@class="type3 prShort pLeftZ ng-binding"]''')
+            '''
+            Start looping through programs begins below
+            '''    
             for i,program in enumerate(programs()):
-                print(f'Program is {programs()[i].text}')
+                print(f'Program is {programs_names()[i].text}')
                 ActionChains(driver).move_to_element(programs()[i]).click().perform()
                 time.sleep(6)
                 wait.until(EC.presence_of_element_located((By.XPATH,'//div[@class="slimScrollDiv"]')))
                 labeler_tabs = lambda: driver.find_elements_by_xpath('//div[@class="slimScrollDiv"]//li')[1:]                
                 #We now have the labeler tabs, time to loop
-                #through the tabs and approve the data                
+                #through the tabs and approve the data         
+                '''
+                Start looping through labelers begins below
+                ''' 
                 for j, labeler in enumerate(labeler_tabs()):
                     print(f'Labeler is {labeler_tabs()[j].text}')
                     ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
@@ -176,18 +183,7 @@ if __name__ == "__main__":
 
 
 
+<button class="btn btn-sm btn-info data" ng-click="moveToVerify(program, 'dnacld');" ng-class="program.IsCLD.IsDnaCLDAvail === false ? 'disabled' : ''">Verify</button>
 
 
-<span class="type9 mLeft30 ng-binding">Connecticut</span>
-
-
-<button class="col-sm-3 btn btn-lg approve-btn type5 greenB approvebtnalign toggleArrow threehundwidth-btn" ng-click="ApproveOrRejectVerified('approve')">
-                    <span>
-                        <img src="../images/approve_green.png">
-                        <img src="../images/approve_white.png">
-                    </span>&nbsp;APPROVE
-                </button>
-
-
-
-
+<div class="type3 prShort pLeftZ ng-binding">CT_FFS </div>
