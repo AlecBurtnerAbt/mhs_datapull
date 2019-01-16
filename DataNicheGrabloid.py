@@ -108,6 +108,8 @@ class DataNicheGrabloid(Grabloid):
             'S0': 'South Carolina'
         }
         driver = self.driver
+        qtr = self.qtr
+        yr = self.yr
         driver.get('https://dna-outlierview3.imshealth.com/Login')
         user = self.credentials.iloc[0,0]
         password = self.credentials.iloc[0,1]
@@ -119,14 +121,18 @@ class DataNicheGrabloid(Grabloid):
         password_input.send_keys(password)
         login_button = driver.find_element_by_xpath('//input[@value="LOG IN"]')
         login_button.click()
+        yq_tab = driver.find_element_by_xpath(f'//a[@data-toggle="tab" and text()="{yr} Q{qtr}"]')
+        yq_tab.click()
         #Find the button bar and the select button
         select_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//div[contains(@class,"btn-group btn-block")]/button[2]')))
         select_button.click()
         full_states = [states[x] for x in states_to_get.iloc[:,0]]
+
         '''
-        Have to implement while loops to ensure that the bot can navigate
-        to the state's tab correctly.  This means a lot of nested whiles.
-        This is the start of the state
+        This series of loops goes through and approves all labeler codes in all programs 
+        as ready to download.
+        
+        States is highest level loop.
         '''
         for state in full_states:
             print(f'State is {state}')
@@ -162,14 +168,22 @@ class DataNicheGrabloid(Grabloid):
                         time.sleep(6)
                     else:
                         pass
-                    
-
-
-                
-    
+        '''
+        The code below goes back through each state and program and requests the reports to download
+        
+        '''
+        for state in full_states:
+            print(f'State is {state}')
+            sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
+            ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
+            print(f'Clicked on {state}')
+            validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
             
-            for program in programs:
-                program.click()
+            for i, program in enumerate(validations()):
+                validations()[i].click()
+                val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]')))                
+                val_summer.click()
+                download_report = wait.until(EC.presence_of_element_located(()))
 
 
 def main():
@@ -181,9 +195,14 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-<button class="btn btn-sm btn-info data" ng-click="moveToVerify(program, 'dnacld');" ng-class="program.IsCLD.IsDnaCLDAvail === false ? 'disabled' : ''">Verify</button>
-
-
-<div class="type3 prShort pLeftZ ng-binding">CT_FFS </div>
+<div class="col-sm-3 vBox miValidation fRight dmgtfilterbtn" ng-class="!program.IsCLD.IsMyCLD &amp;&amp; !program.IsCLD.IsDnaCLD ? 'disabled' : ''">
+                                <div class="col-xs-10 text-right miValidP type6">
+                                    <div class="bold">Validate</div>
+                                    <span>
+                                        <!--ng-show="uravalue && (program.IsCLD.IsMyCLD || program.IsCLD.IsDnaCLD)"-->
+                                        <div class="recent-break ng-binding">$214,240</div>
+                                        <span>for review</span>
+                                    </span>
+                                </div>
+                                <div class="col-xs-2 text-right miValidP"><img src="../images/arrow_right_big_white.png"></div>
+                            </div>
