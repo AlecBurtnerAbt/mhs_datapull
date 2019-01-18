@@ -25,6 +25,7 @@ import pprint
 from pushover_complete import PushoverAPI
 import sys
 import traceback
+import logging
 
 class Grabloid():
     
@@ -55,7 +56,17 @@ class Grabloid():
         for file in files:
             os.remove(self.temp_folder_path+file)
         os.chdir(self.temp_folder_path)
-    
+        log_location = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Log\\"
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        fh = logging.FileHandler(os.path.join(log_location,'AutoBots.log'))
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        logging.warning(f"{os.getlogin()} has run script for {self.script}")
+
+        
     def send_message(self,invoices):
         subject = f'{self.script} Invoices'
         body = 'The following invoices have been downloaded:\n'+'\n'.join(invoices)

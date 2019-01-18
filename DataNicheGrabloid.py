@@ -181,10 +181,21 @@ class DataNicheGrabloid(Grabloid):
             
             for i, program in enumerate(validations()):
                 validations()[i].click()
-                val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]')))                
-                val_summer.click()
-                download_report = wait.until(EC.presence_of_element_located(()))
-
+                val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
+                ActionChains(driver).move_to_element(val_summer).click().perform()
+                download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
+                download_report.click()
+                CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
+                CLD_options.click()
+                download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
+                download_button.click()
+                popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
+                popup_accept.click()
+                validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
+                validate_all_button.click()
+                back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
+                back_to_state_programs_button.click()
+                wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
 
 def main():
     grabber = DataNicheGrabloid()
@@ -195,14 +206,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-<div class="col-sm-3 vBox miValidation fRight dmgtfilterbtn" ng-class="!program.IsCLD.IsMyCLD &amp;&amp; !program.IsCLD.IsDnaCLD ? 'disabled' : ''">
-                                <div class="col-xs-10 text-right miValidP type6">
-                                    <div class="bold">Validate</div>
-                                    <span>
-                                        <!--ng-show="uravalue && (program.IsCLD.IsMyCLD || program.IsCLD.IsDnaCLD)"-->
-                                        <div class="recent-break ng-binding">$214,240</div>
-                                        <span>for review</span>
-                                    </span>
-                                </div>
-                                <div class="col-xs-2 text-right miValidP"><img src="../images/arrow_right_big_white.png"></div>
-                            </div>
+<span class="vMiddle backNavText type6 ng-binding">
+                                <span class="dispB ng-binding">2018 Q3</span>
+                                Connecticut
+                            </span>
