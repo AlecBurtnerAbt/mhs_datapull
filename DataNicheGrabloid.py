@@ -180,22 +180,79 @@ class DataNicheGrabloid(Grabloid):
             validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
             
             for i, program in enumerate(validations()):
-                validations()[i].click()
+                ActionChains(driver).move_to_element(validations()[i]).click().perform()
+                time.sleep(5)
                 val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
                 ActionChains(driver).move_to_element(val_summer).click().perform()
+                time.sleep(5)
                 download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
                 download_report.click()
+                time.sleep(5)
                 CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
                 CLD_options.click()
+                time.sleep(5)
                 download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
                 download_button.click()
+                time.sleep(5)
                 popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
                 popup_accept.click()
+                time.sleep(5)
                 validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
                 validate_all_button.click()
+                time.sleep(5)
                 back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
                 back_to_state_programs_button.click()
+                time.sleep(5)
                 wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
+        #Now all data has been validated and all reports have been requested.  Have to 
+        #navigate to the "My Reports" section and download all reports while only selecting 
+        #each report once
+        my_reports_page = driver.find_element_by_xpath('//a[@ng-click="moveToMyReports()"]')
+        my_reports_page.click()
+        time.sleep(5)
+        reports_table = pd.read_html(driver.page_source)[1]
+        column_names = list(pd.read_html(driver.page_source)[0].columns)
+        reports_table = reports_table.rename(mapper=dict(zip(range(0,len(column_names)),column_names)),axis='columns')
+        #Now we have a table that has the name of the files, date requested, and state_program-code for
+        #each file.  To ensure we only download each file once I'll make a list of the links
+        # and then make a dictionary with the file name.  When I download a file the file name
+        # will be added to a list.  If the program goes to download a file and sees it in the list it will pass over it
+        download_links = driver.find_elements_by_xpath('//a[contains(@href,"MyreportsDownload")]')
+        new_file_names = [f'{x[:2]}_{x[3:]}_{qtr}Q{yr}_.xlsx' for x in reports_table.loc[:,'Programs Selected']] 
+        programs = [f'{x[3:]}' for x in reports_table.loc[:,'Programs Selected']]
+        
+        #Now loop through the files, download them, parse them from pipe delimited to 
+        # an xlsx and move them to the appropriate folder
+        obtained = []
+        for link,old_file_name,new_file_name,program in zip(download_links,reports_table['Report Name'],new_file_names,programs):
+            if new_file_name in obtained:
+                print(f'Already have file for {new_file_name}')
+                continue
+            ActionChains(driver).move_to_element(link).click().perform()
+            print('Downloading...')
+            success_flag = False
+            while len(os.listdir()) ==0:
+                time.sleep(1)
+            while success_flag == False:
+                file = os.listdir()[0]
+                if file[-4:] != '.txt':
+                    time.sleep(1)
+                else:
+                    success_flag = True
+                    print(f'Successfully downloaded {old_file_name}')
+            print('Parsing data....')
+            data = pd.read_csv(file,delimiter='|')
+            print('Parsing complete!')
+            #define the file path and if its not there make it
+            print('Writing to file and removing text file...')
+            file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNiceTest\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
+            if os.path.exists(file_path) == False:
+                os.makedirs(file_path)
+            data.to_excel(os.path.join(file_path,new_file_name),index=False)
+            os.remove(file)
+            obtained.append(new_file_name)
+            print(f'All operations complete for {new_file_name}!')
+        
 
 def main():
     grabber = DataNicheGrabloid()
@@ -206,7 +263,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-<span class="vMiddle backNavText type6 ng-binding">
-                                <span class="dispB ng-binding">2018 Q3</span>
-                                Connecticut
-                            </span>

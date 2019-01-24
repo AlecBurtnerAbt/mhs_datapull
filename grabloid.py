@@ -28,25 +28,25 @@ import traceback
 import logging
 
 class Grabloid():
-    
+    driver_path = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\"
     def __init__(self,script,use_chrome=True):
         os.chdir('O:\\')
         self.script = script
         self.temp_folder_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\{self.script}\\'
-        driver_path = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\"
+        
         chrome_options = Options()
         prefs = {'download.default_directory':self.temp_folder_path,
          'plugins.always_open_pdf_externally':True,
          'download.prompt_for_download':False}
         chrome_options.add_experimental_option("prefs",prefs)
         if use_chrome == True:
-            self.driver = webdriver.Chrome(executable_path=driver_path+"chromedriver.exe", options=chrome_options)
+            self.driver = webdriver.Chrome(executable_path=os.path.join(Grabloid.driver_path,"chromedriver.exe"), options=chrome_options)
         else: 
             pass
-        self.yr = pd.read_excel(driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="A").iloc[0,0]
-        self.qtr = pd.read_excel(driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="B").iloc[0,0]
-        self.credentials = pd.read_excel(driver_path+"automation_parameters.xlsx", sheet_name= f"{self.script}" ,usecols="A:B")
-        self.to_address = pd.read_excel(driver_path+"automation_parameters.xlsx", sheet_name= "Email Address" ,usecols="A").iloc[0,0]
+        self.yr = pd.read_excel(Grabloid.driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="A").iloc[0,0]
+        self.qtr = pd.read_excel(Grabloid.driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="B").iloc[0,0]
+        self.credentials = pd.read_excel(Grabloid.driver_path+"automation_parameters.xlsx", sheet_name= f"{self.script}" ,usecols="A:B")
+        self.to_address = pd.read_excel(Grabloid.driver_path+"automation_parameters.xlsx", sheet_name= "Email Address" ,usecols="A").iloc[0,0]
         self.wait = WebDriverWait(self.driver,10)
         if os.path.exists(self.temp_folder_path)==False:
                 os.mkdir(self.temp_folder_path)

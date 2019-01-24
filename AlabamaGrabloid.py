@@ -41,6 +41,8 @@ class Alabama_Grabloid(Grabloid):
         wait = self.wait
         invoices_obtained=[]
         password = self.credentials.iloc[0,1]
+        mapper = pd.read_excel(Grabloid.driver_path+'automation_parameters.xlsx',usecols='D,E',sheet_name='Alabama')
+        mapper = dict(zip(mapper.iloc[:,0],mapper.iloc[:,1]))
         for account in self.usernames:
             driver.get('https://www.medicaid.alabamaservices.org/ALPortal/')
             #Move to the drop down, hover and click "Secure Site"
@@ -211,7 +213,8 @@ class Alabama_Grabloid(Grabloid):
                             temp = temp.drop([dp])
                             master_frame = master_frame.append(temp)
                             os.remove('ClaimLevelDetail.csv')
-                        file_name = f'AL_{option}_{self.qtr}Q{self.yr}_{label_code}.csv'
+                        flex_code = mapper[option]
+                        file_name = f'AL_{flex_code}_{self.qtr}Q{self.yr}_{label_code}.csv'
                         master_frame.to_csv(file_name,index=False)
                         path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Alabama\\'+option+'\\'+str(self.yr)+'\\'+'Q'+str(self.qtr)+'\\'
                         if os.path.exists(path)==False:
