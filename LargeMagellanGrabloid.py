@@ -111,6 +111,7 @@ class LargeMagellanGrabloid(Grabloid):
         mapper = dict(zip(mapper['State Invoice ID'],mapper['Lilly Code']))
         mapper2 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,F',dtype='str')
         mapper2 = dict(zip(mapper2['State Invoice ID'],mapper2['CLD Programs']))
+        mapper3 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Programs', usecols='B,D',dtype='str')
         #Login with provided credentials
         driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
         user_name = driver.find_element_by_xpath('//*[@id="username"]')
@@ -143,7 +144,7 @@ class LargeMagellanGrabloid(Grabloid):
                 report_id = report.text.split(' ')[1]
                 program = mapper[report_id]
                 directory = mapper2[report_id]
-                state = report_id[:2]
+                state = list(mapper3['State'][mapper3['State Invoice Id (e.g. OBRA 1000 etc)']==report_id])[0]
                 print(f'State is {state}')
                 directory = directory.replace(state,'').strip()
                 full_state = states[state]
