@@ -111,6 +111,7 @@ class DataNicheGrabloid(Grabloid):
         qtr = self.qtr
         yr = self.yr
         driver.get('https://dna-outlierview3.imshealth.com/Login')
+        driver.maximize_window()
         user = self.credentials.iloc[0,0]
         password = self.credentials.iloc[0,1]
         wait = self.wait
@@ -121,7 +122,9 @@ class DataNicheGrabloid(Grabloid):
         password_input.send_keys(password)
         login_button = driver.find_element_by_xpath('//input[@value="LOG IN"]')
         login_button.click()
-        yq_tab = driver.find_element_by_xpath(f'//a[@data-toggle="tab" and text()="{yr} Q{qtr}"]')
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='F,G,H',dtype='str')
+        time.sleep(8)
+        yq_tab = wait.until(EC.presence_of_element_located((By.XPATH,f'//a[@data-toggle="tab" and text()="{yr} Q{qtr}"]')))
         yq_tab.click()
         #Find the button bar and the select button
         select_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//div[contains(@class,"btn-group btn-block")]/button[2]')))
@@ -159,7 +162,7 @@ class DataNicheGrabloid(Grabloid):
                 for j, labeler in enumerate(labeler_tabs()):
                     print(f'Labeler is {labeler_tabs()[j].text}')
                     ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
-                    time.sleep(6)
+                    time.sleep(8)
                     approve_button = driver.find_element_by_xpath("""//button[@ng-click="ApproveOrRejectVerified('approve')"]""")
                     approve_button.click()
                     time.sleep(8)
@@ -180,36 +183,37 @@ class DataNicheGrabloid(Grabloid):
             validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
             
             for i, program in enumerate(validations()):
+                print(f'Program is {program.text}')
                 ActionChains(driver).move_to_element(validations()[i]).click().perform()
-                time.sleep(5)
+                time.sleep(8)
                 val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
                 ActionChains(driver).move_to_element(val_summer).click().perform()
-                time.sleep(5)
+                time.sleep(8)
                 download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
                 download_report.click()
-                time.sleep(5)
+                time.sleep(8)
                 CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
                 CLD_options.click()
-                time.sleep(5)
+                time.sleep(8)
                 download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
                 download_button.click()
-                time.sleep(5)
+                time.sleep(8)
                 popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
                 popup_accept.click()
-                time.sleep(5)
+                time.sleep(8)
                 validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
                 validate_all_button.click()
-                time.sleep(5)
+                time.sleep(8)
                 back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
                 back_to_state_programs_button.click()
-                time.sleep(5)
+                time.sleep(8)
                 wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
         #Now all data has been validated and all reports have been requested.  Have to 
         #navigate to the "My Reports" section and download all reports while only selecting 
         #each report once
         my_reports_page = driver.find_element_by_xpath('//a[@ng-click="moveToMyReports()"]')
         my_reports_page.click()
-        time.sleep(5)
+        time.sleep(10)
         reports_table = pd.read_html(driver.page_source)[1]
         column_names = list(pd.read_html(driver.page_source)[0].columns)
         reports_table = reports_table.rename(mapper=dict(zip(range(0,len(column_names)),column_names)),axis='columns')
@@ -218,9 +222,11 @@ class DataNicheGrabloid(Grabloid):
         # and then make a dictionary with the file name.  When I download a file the file name
         # will be added to a list.  If the program goes to download a file and sees it in the list it will pass over it
         download_links = driver.find_elements_by_xpath('//a[contains(@href,"MyreportsDownload")]')
-        new_file_names = [f'{x[:2]}_{x[3:]}_{qtr}Q{yr}_.xlsx' for x in reports_table.loc[:,'Programs Selected']] 
+        report_states = reports_table['Programs Selected'].apply(lambda x: x.split('_')[0]).tolist()
         programs = [f'{x[3:]}' for x in reports_table.loc[:,'Programs Selected']]
-        
+        flex_programs = [mapper[(mapper['PROGRAM']==program)&(mapper['STATE']==state)]['Flex Contract Name'].tolist()[0] for program,state in zip(programs,report_states)]
+        reports_table['program'] = reports_table['Programs Selected'].apply(lambda x: '_'.join(x.split('_')[1:]))
+        new_file_names = [f'{st}_{program}_{qtr}Q{yr}_DNA_.xlsx' for st,program in zip(report_states,flex_programs)]
         #Now loop through the files, download them, parse them from pipe delimited to 
         # an xlsx and move them to the appropriate folder
         obtained = []
@@ -228,6 +234,7 @@ class DataNicheGrabloid(Grabloid):
             if new_file_name in obtained:
                 print(f'Already have file for {new_file_name}')
                 continue
+            flex_name = reports_table[reports_table['Report Name']==old_file_name]['program'].tolist()[0]
             ActionChains(driver).move_to_element(link).click().perform()
             print('Downloading...')
             success_flag = False
