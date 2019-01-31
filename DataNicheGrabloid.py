@@ -222,19 +222,21 @@ class DataNicheGrabloid(Grabloid):
         # and then make a dictionary with the file name.  When I download a file the file name
         # will be added to a list.  If the program goes to download a file and sees it in the list it will pass over it
         download_links = driver.find_elements_by_xpath('//a[contains(@href,"MyreportsDownload")]')
-        report_states = reports_table['Programs Selected'].apply(lambda x: x.split('_')[0]).tolist()
-        programs = [f'{x[3:]}' for x in reports_table.loc[:,'Programs Selected']]
-        flex_programs = [mapper[(mapper['PROGRAM']==program)&(mapper['STATE']==state)]['Flex Contract Name'].tolist()[0] for program,state in zip(programs,report_states)]
+        reports_table['state'] = reports_table['Programs Selected'].apply(lambda x: x[:2])
         reports_table['program'] = reports_table['Programs Selected'].apply(lambda x: '_'.join(x.split('_')[1:]))
-        new_file_names = [f'{st}_{program}_{qtr}Q{yr}_DNA_.xlsx' for st,program in zip(report_states,flex_programs)]
         #Now loop through the files, download them, parse them from pipe delimited to 
         # an xlsx and move them to the appropriate folder
         obtained = []
-        for link,old_file_name,new_file_name,program in zip(download_links,reports_table['Report Name'],new_file_names,programs):
+        for i in range(len(reports_table)):
+            state = reports_table.loc[i,'state']
+            program = reports_table.loc[i,'program']
+            link_text = reports_table.loc[i,'Report Name']
+            flex_program = mapper[(mapper['STATE']==state)&(mapper['PROGRAM']==program)]['Flex Contract Name'].tolist()[0]
+            new_file_name = f'{state}_{flex_program}_{qtr}Q{yr}_DNA_.xlsx'
+            link = driver.find_element_by_xpath(f'//a[text()="{link_text}"]')
             if new_file_name in obtained:
                 print(f'Already have file for {new_file_name}')
                 continue
-            flex_name = reports_table[reports_table['Report Name']==old_file_name]['program'].tolist()[0]
             ActionChains(driver).move_to_element(link).click().perform()
             print('Downloading...')
             success_flag = False
@@ -246,13 +248,19 @@ class DataNicheGrabloid(Grabloid):
                     time.sleep(1)
                 else:
                     success_flag = True
-                    print(f'Successfully downloaded {old_file_name}')
-            print('Parsing data....')
-            data = pd.read_csv(file,delimiter='|')
-            print('Parsing complete!')
+                    print(f'Successfully downloaded {new_file_name}')
+            success_flag =False
+            while success_flag ==False:
+                try:
+                    print('Parsing data....')
+                    data = pd.read_csv(file,delimiter='|',engine='python')
+                    print('Parsing complete!')
+                    success_flag = True
+                except PermissionError as err:
+                    print(f'{err} occurred trying again')
             #define the file path and if its not there make it
             print('Writing to file and removing text file...')
-            file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNiceTest\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
+            file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNicheTest\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
             if os.path.exists(file_path) == False:
                 os.makedirs(file_path)
             data.to_excel(os.path.join(file_path,new_file_name),index=False)
