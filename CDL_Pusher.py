@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 15 12:52:42 2018
-
-@author: C252059
-"""
-
 import os
 import pandas as pd
 import re
@@ -58,29 +51,71 @@ class Pusher():
                     pass
             while len(os.listdir(write_path))>1:
                 time.sleep(1)
+
+def push_dataniche_test(qtr,year):
+    path = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\DataNicheTest\Claims'
+    to_submit = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if f'{qtr}Q{year}'in file:
+                file_name = os.path.join(root,file)
+                to_submit.append(file_name)
+    n = 400
+    batches = [to_submit[i:i+n] for i in range(0,len(to_submit),n)]
+    write_path = 'Z:\\'
+    for batch in batches:
+        for file in batch:
+            base_file = file.split('\\')[-1].replace(' ','-')
+            extension = base_file.split('.')[-1]
+            base_file = base_file.split('.')[0]
+            base_file = base_file+"_LABNET_"
+            print(f"base file is {base_file}")
+            print(f"extension is {extension}")
+            base_file = base_file+'.'+extension
+            print(f"base file is now {base_file}")
+            file_name = 'IRIS.CLD.'+base_file
+            print(file_name)
+            if file_name[-4:]=='xlsx' or file_name[-4:]=='.xls':
+                shutil.copy(file,write_path+file_name)
+                print(f'{file_name} has been moved to the magic folder!  Pray to your god it works!')
+            else:
+                pass
+        while len(os.listdir(write_path))>1:
+            time.sleep(1)
+    
+    
     
     
 def main():
     pusher = Pusher()
     batches = pusher.batch_files(qtr='3',year='2018')
     pusher.move_files(batches)
+    
+    push_dataniche_test('3','2018')
 
 if __name__ == '__main__':
     main()
     
     
+'''    
+os.chdir(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Claims')
+obtained = []
+for root, dirs, files in os.walk(os.getcwd()):
+    for file in files:
+        file = file.replace('.xlsx','_.xlsx')
+        new_name = f'IRIS.CLD.{file}'
+        obtained.append(new_name)
+files = pd.DataFrame(obtained,columns=['File Name'])
+files.to_csv('automated_files.csv')
 '''
-The function below is a block of code if you have to push one file
-from "batches" to a folder to test file transfer functionality
 
-'''
-'''
-def one_off_push(file):
-    write_path = 'Z:\\'
+
+def one_off_push(file,):
+    write_path = 'C:\\Test\\'
     base_file = file.split('\\')[-1].replace(' ','-')
     extension = base_file.split('.')[-1]
     base_file = base_file.split('.')[0]
-    base_file = base_file+"_LABNET_"
+    #base_file = base_file+"_LABNET_"
     print(f"base file is {base_file}")
     print(f"extension is {extension}")
     base_file = base_file+'.'+extension
@@ -91,4 +126,15 @@ def one_off_push(file):
 
 file = batches[0][0]
 one_off_push(file)
-'''
+def get_one_off_push(location):
+    to_push = []
+    for root, dirs, files in os.walk(location):
+        for file in files:
+            to_push.append(os.path.join(root,file))
+    return to_push
+
+files = get_one_off_push(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Converted Raw Text\Claims\North Dakota')
+loc = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Converted Raw Text\Claims\North Dakota'
+for file in files:
+    one_off_push(file)
+
