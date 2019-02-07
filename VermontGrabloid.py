@@ -406,8 +406,12 @@ def download_reports():
     splitters = master_df.Program.unique().tolist()  
     for splitter in splitters:
         frame = master_df[master_df['Program']==splitter]
+        try:
+            program_code_name = mapper[splitter]
+        except:
+            program_code_name = splitter
         path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Vermont\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-        file_name = 'VT_'+splitter+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
+        file_name = 'VT_'+program_code_name+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
         if os.path.exists(path)==False:
             os.makedirs(path)
         else:
