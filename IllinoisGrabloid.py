@@ -367,9 +367,13 @@ class IllinoisGrabloid(Grabloid):
             frames = []
             splitters = master_df.Program.unique().tolist()  
             for splitter in splitters:
+                try:
+                    program_code_name = mapper[splitter]
+                else:
+                    program_code_name = splitter
                 frame = master_df[master_df['Program']==splitter]
                 path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-                file_name = 'IL_'+splitter+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
+                file_name = 'IL_'+program_code_name+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
                 if os.path.exists(path)==False:
                     os.makedirs(path)
                 else:
