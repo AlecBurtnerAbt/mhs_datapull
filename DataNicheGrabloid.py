@@ -253,14 +253,14 @@ class DataNicheGrabloid(Grabloid):
             while success_flag ==False:
                 try:
                     print('Parsing data....')
-                    data = pd.read_csv(file,delimiter='|',engine='python')
+                    data = pd.read_csv(file,delimiter='|',engine='python', encoding='utf-8-sig')
                     print('Parsing complete!')
                     success_flag = True
                 except PermissionError as err:
                     print(f'{err} occurred trying again')
             #define the file path and if its not there make it
             print('Writing to file and removing text file...')
-            file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNicheTest\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
+            file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNicheTest2\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
             if os.path.exists(file_path) == False:
                 os.makedirs(file_path)
             data.to_excel(os.path.join(file_path,new_file_name),index=False)

@@ -312,7 +312,11 @@ class PennsylvaniaGrabloid(Grabloid):
         for splitter in splitters:
             frame = master_df[master_df['Program']==splitter]
             path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Pennsylvania\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-            file_name = 'PA_'+splitter+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
+            try:
+            	program_code_name = mapper[splitter]
+            except:
+            	program_code_name = splitter
+            file_name = 'PA_'+program_code_name+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
             if os.path.exists(path)==False:
                 os.makedirs(path)
             else:
