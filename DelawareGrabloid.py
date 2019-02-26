@@ -200,7 +200,7 @@ class DelawareGrabloid(Grabloid):
                         df.to_excel(placement_path,index=False)
                         os.remove(root+'\\'+file)        
                         
-@push_note(__file__)
+#@push_note(__file__)
 def main():
     grabber = DelawareGrabloid()
     invoices = grabber.pull()

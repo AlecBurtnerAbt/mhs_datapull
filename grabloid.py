@@ -28,7 +28,7 @@ import traceback
 import logging
 
 class Grabloid():
-    driver_path = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\"
+    driver_path = r'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\'
     def __init__(self,script,use_chrome=True):
         os.chdir('O:\\')
         self.script = script
