@@ -31,7 +31,8 @@ import numpy as np
 import xlsxwriter as xl
 from grabloid import Grabloid, push_note
 import pickle
-
+from itertools import product
+import logging
 
 class MagellanGrabloid(Grabloid):
     def __init__(self):
@@ -354,10 +355,21 @@ class MagellanGrabloid(Grabloid):
                             retrieved[program].append(label)
                             time.sleep(1)
                     invoice().click()
+        with open('cld_411.pkl','wb') as f:
+            pickle.dump(cld_to_get,f)
         return cld_to_get, invoices_obtained
          ########################################################CLD Below this line###########################################   
         
-    def pull_cld(self,cld_to_get):
+    def pull_cld(self,cld_only=False,cld_to_get=[]):
+        #set up logger to track which files were downloaded, and if any were zero bytes
+        log_location = "O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Log\\"
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.INFO)
+        fh = logging.FileHandler(os.path.join(log_location,'Magellan.log'))
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
         states = {
             'AK': 'Alaska',
             'AL': 'Alabama',
@@ -421,9 +433,27 @@ class MagellanGrabloid(Grabloid):
             'First' :'South Carolina',
             'Unison' :'Ohio'
         }
+        states_2 = dict(zip(states.values(),states.keys()))
         yr = self.yr
         qtr = self.qtr
-        driver = self.driver
+        #if we're running the CLD grabber in isolation from the invoices we have to generate a driver
+        #and navigate to that page
+        zero_byte_files = []
+        if cld_only == True:
+            driver = self.driver
+            login_credentials = self.credentials
+            username = login_credentials.iloc[0,0]
+            password = login_credentials.iloc[0,1]
+            driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
+            user_name = driver.find_element_by_xpath('//*[@id="username"]')
+            user_name.send_keys(username)
+            pass_word = driver.find_element_by_xpath('//*[@id="password"]')
+            pass_word.send_keys(password)
+            wait2 = WebDriverWait(driver,3)
+            login_button = driver.find_element_by_xpath('//*[@id="content"]/div/div[2]/fieldset/ol[2]/li/input[3]')
+            login_button.click()
+        else:
+            driver = self.driver
         wait = self.wait
         claims_details = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="mainForm:claims"]')))
         claims_details.click()
@@ -443,6 +473,12 @@ class MagellanGrabloid(Grabloid):
         program_name_select = lambda: Select(program_name()) 
         wait2 = WebDriverWait(driver,3)
         large_magellan = []
+        if cld_only == True:
+            labeler_codes = [x.text for x in labeler_select().options]
+            programs = [x.text for x in program_name_select().options][1:]
+            cld_to_get = list(product(labeler_codes,programs))
+        else:
+            pass
         for item in cld_to_get:
             labeler_code = item[0]
             cld_program_name = item[1]
@@ -501,6 +537,21 @@ class MagellanGrabloid(Grabloid):
                         pass
                 while 'claimdetails.xls' not in os.listdir():
                     time.sleep(1)
+                length_check = 0
+                while length_check == 0:
+                    try:
+                        file_info = pd.read_csv('claimdetails.xls',sep='\t')
+                    except:
+                        print('File read error, retrying.')
+                        time.sleep(1)
+                    if len(file_info)== 0:
+                        print(f'{cld_program_name} for label code {labeler_code} was zero byte size.')
+                        logger.info(f'{cld_program_name} for label code {labeler_code} contained no records.')
+                        zero_byte_files.append((cld_program_name,labeler_code))
+                        length_check = 1
+                    else:
+                        print(f'{cld_program_name} for label {labeler_code} has data.')
+                        length_check = 1
                 if len(item[1].split(' ')[0]) <3:
                     state = item[1].split(' ')[0]
                 elif item[1].split(' ')[0] in ('BlueChoice','First','Absolute'):
@@ -509,22 +560,30 @@ class MagellanGrabloid(Grabloid):
                     state = 'OH'
                 elif item[1].split(' ')[0]=='North':
                     state = 'NC'
-                elif 'New Hampshire' in item[1]:
-                    state = 'NH'
-                elif 'New York' in item[1]:
-                    state = 'NY'
-                elif 'Arkansas' in item[1]:
-                    state = 'AR'
                 else:
-                    state = item[1].split(' ')[0]
-                    
-                path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\'+'Claims\\'+states[state]+'\\'+' '.join(item[1].split(' ')[1:])+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                    for full_state in states.values():
+                        if full_state in state:
+                            state = full_state 
+                            break
+                try:
+                    folder_name =' '.join(item[1].split(' ')[1:])
+                except KeyError as err:
+                    folder_name = item[1]
+                if len(state)==2:
+                    state = states[state]
+                else:
+                    pass
+                state_abbreviation = states_2[state]
+                path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\'+'Claims\\'+state+'\\'+folder_name+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
                 if os.path.exists(path)==False:
                     os.makedirs(path)              
                 else:
                     pass
-                lilly_code = mapper[cld_program_name]
-                new_name = f'{state}_{lilly_code}_{qtr}Q{yr}_{labeler_code}.xls'
+                try:
+                    lilly_code = mapper[cld_program_name]
+                except KeyError as err:
+                    lilly_code = cld_program_name
+                new_name = f'{state_abbreviation}_{lilly_code}_{qtr}Q{yr}_{labeler_code}.xls'
                 shutil.move('claimdetails.xls',path+new_name)
             else:
                 pass
@@ -538,9 +597,14 @@ class MagellanGrabloid(Grabloid):
     
 @push_note(__file__)
 def main():
+    cld_only = False
+    efficient = False
     grabber = MagellanGrabloid()
-    cld, invoices = grabber.pull(efficient=True) 
-    large_magellan = grabber.pull_cld(cld)
+    if cld_only == False:
+        cld, invoices = grabber.pull(efficient=efficient) 
+        large_magellan = grabber.pull_cld(cld_only=False, cld_to_get=cld)
+    else:
+        large_magellan= grabber.pull_cld(cld_only=True)
     grabber.send_message(invoices)
     
 if __name__=='__main__':

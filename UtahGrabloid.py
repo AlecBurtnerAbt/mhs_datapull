@@ -44,7 +44,7 @@ class UtahGrabloid(Grabloid):
         login_credentials = self.credentials
         password = login_credentials.iloc[0,1]
         username = login_credentials.iloc[0,0]
-        
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='{}'.format(script), usecols='D,E',dtype='str')
         #Navigate to site and log in
         driver.get('https://rsp.ghsinc.com/RebateServicesPortal/application/login.joi')
         username_input = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="user_login"]')))
@@ -66,17 +66,27 @@ class UtahGrabloid(Grabloid):
         #inside the for loops
         state_dropdown_func = lambda: driver.find_element_by_xpath('//select[@id="document_state_id"]')
         state_dropdown_func = Select(state_dropdown_func())
-
+        
         
         # Bypass first value because it is not a state
-        states = [x.text for x in state_dropdown.options][1:]                
+        states = [x.text for x in state_dropdown.options][1:]
+        current_time = f'{yr} - Q{qtr}'                
         for state in states:
             state_dropdown_func.select_by_visible_text(state)
-            type_select = Select(driver.find_element_by_xpath('//select[@id="document_document_type_id"]'))
-            invoice_types = [x.text for x in type_select.options][1:]
-                #Skip the first invoice type because it is not a report 
+            type_select = lambda: Select(driver.find_element_by_xpath('//select[@id="document_document_type_id"]'))
+            #Skip the first invoice type because it is not a report 
+            programs = [x.text for x in type_select().options][1:]
+            for program in programs:
+                type_select().select_by_visible_text(program)
+                time.sleep(1)
+                date_select = driver.find_element_by_xpath('//select[@id="document_id"]')
+                date_select = Select(date_select)
+                available_dates = [x.text for x in date_select.options][1:]                 
+                if current_time in available_dates:
+                    date_select.select_by_visible_text(current_time)
+                else:
+                    continue
                 
-
 
 
 
@@ -113,3 +123,7 @@ class UtahGrabloid(Grabloid):
 
 a = UtahGrabloid()
 driver = a.driver
+yr = a.yr
+qtr = a.qtr
+wait = a.wait
+login_credentials = a.credentials

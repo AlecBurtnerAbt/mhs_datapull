@@ -31,6 +31,7 @@ import gzip
 import numpy as np
 import xlsxwriter as xl
 from grabloid import Grabloid, push_note
+import pickle
 
 class TennesseeGrabloid(Grabloid):
     
@@ -234,8 +235,9 @@ class TennesseeGrabloid(Grabloid):
 
         
         yq = str(yr)+str(qtr)
-        
-        
+
+
+            
         """
         Switching to CLD data
         Sets dropdown default to null
@@ -248,8 +250,8 @@ class TennesseeGrabloid(Grabloid):
         year_qtr = lambda: driver.find_element_by_id('mainForm:srchYearQtr')
         year_qtr().clear()
         year_qtr().send_keys(yq)
-        program_name = lambda: driver.find_element_by_id('mainForm:srchProgramName')
-        program_name_select = lambda: Select(program_name()) 
+        program_name_dropdown = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@id="mainForm:srchProgramName"]')))
+        program_name_select = lambda: Select(program_name_dropdown()) 
         programs = [x.text for x in program_name_select().options if len(x.text)>1]
         
         for code in codes:
@@ -305,7 +307,11 @@ class TennesseeGrabloid(Grabloid):
                         os.makedirs(path)              
                     else:
                         pass
-                    new_name ='TN_{}_{}Q{}_{}.xls'.format(mapper[program],qtr,yr,code)
+                    try:
+                        program_name = mapper[program]
+                    except KeyError as err:
+                        program_name = program
+                    new_name ='TN_{}_{}Q{}_{}.xls'.format(program_name,qtr,yr,code)
                     shutil.move('claimdetails.xls',path+new_name)
         return invoice_labels
 

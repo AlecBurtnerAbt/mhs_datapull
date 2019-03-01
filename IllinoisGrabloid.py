@@ -369,7 +369,7 @@ class IllinoisGrabloid(Grabloid):
             for splitter in splitters:
                 try:
                     program_code_name = mapper[splitter]
-                else:
+                except:
                     program_code_name = splitter
                 frame = master_df[master_df['Program']==splitter]
                 path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
