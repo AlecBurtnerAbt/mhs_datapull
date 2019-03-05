@@ -46,7 +46,47 @@ class Vermont_Grabloid(Grabloid):
     def __init__(self):
         super().__init__(script='Vermont')
         
-    
+    def delete_old_reports(self):
+        yr = self.yr
+        qtr = self.qtr
+        driver = self.driver
+        wait = self.wait
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Vermont', usecols='D,E',dtype='str')
+        mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
+        time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
+        yr = time_stuff.iloc[0,0]
+        qtr = time_stuff.iloc[0,1]
+        yq=str(yr)+str(qtr)
+        login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Vermont', usecols=[0,1],dtype='str')
+        username = login_credentials.iloc[0,0]
+        password = login_credentials.iloc[0,1]
+        driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
+        wait2 = WebDriverWait(driver,2)
+        driver.implicitly_wait(20)
+        #find username and password and pass the login credentials
+        
+        user = driver.find_element_by_xpath('//input[@id="username"]')
+        user.send_keys(username)
+        pw = driver.find_element_by_xpath('//input[@id="password"]')
+        pw.send_keys(password)
+        login = driver.find_element_by_xpath('//input[@value="Login"]')
+        login.click()
+        
+        #Now to navigate past the next page
+        
+        accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
+        accept.click()
+        reports_tab = driver.find_element_by_xpath('//a[text()="Reports"]')       
+        reports_tab.click() 
+        deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
+        while len(deletes())>0:
+            for i in range(len(deletes())):
+                canary = driver.find_element_by_xpath('//input[@id="reportSub"]')
+                deletes()[0].click()
+                alert = driver.switch_to.alert
+                alert.accept()
+                wait.until(EC.staleness_of(canary))
+                
     def get_invoices(self):
         driver = self.driver
         time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
@@ -101,6 +141,14 @@ class Vermont_Grabloid(Grabloid):
             else:
                 available = 0
             return available
+        #Helper function to check for error page
+        def check_for_error():
+            try:
+                error_message = driver.find_element_by_xpath('//li[contains(text(),"An error has occurred")]')
+                return 1
+            except:
+                return 0
+            
         for label, report in invoices_to_get:
             counter = 0
             available =0
@@ -111,6 +159,7 @@ class Vermont_Grabloid(Grabloid):
                 type_select().select_by_index(types.index(report)+1)
                 time.sleep(1)
                 submit = driver.find_element_by_xpath('//input[@id="invSubmit"]')
+                print(f'Requesting report for {report} {label} \n')
                 submit.click()
                 wait.until(EC.staleness_of(submit))
                 available = check()
@@ -119,43 +168,85 @@ class Vermont_Grabloid(Grabloid):
                 else:
                     pass
                 time.sleep(counter*1.5)
-            buttons = driver.find_elements_by_xpath('//a[@class="btn"][contains(@onclick,"download")]')
-            for button in buttons:
-                button.click()
-                alert = driver.switch_to.alert
-                alert.accept()
-                if buttons.index(button)==0:
-                    file_type='.txt'
-                else:
-                    file_type = '.pdf'
-                file_name = f'VT-{label}-{yq}-{report}{file_type}'
-                while file_name not in os.listdir():
-                    time.sleep(1)
-                #Now open the file and return the NDCs associated to the label code and program
-                if file_type =='.txt':
-                    read_flag = 0
-                    while read_flag==0:
-                        try:
-                            with open(file_name) as f:
-                                lines = f.readlines()
-                                ndcs = list(set([line[6:17] for line in lines]))
-                                ndcs = [ndc for ndc in ndcs if len(ndc)>1]
-                                reference_list.append((label,report,ndcs))
-                            read_flag=1
-                        except PermissionError as ex:
+            buttons = lambda: driver.find_elements_by_xpath('//a[@class="btn"][contains(@onclick,"download")]')
+            for i, button in enumerate(buttons()):
+                success = 0
+                counter = 0
+                continue_flag =0
+                while success==0 and counter < 1:
+                    try:
+                        print('Clicking button')
+                        buttons()[i].click()
+                        print('Button clicked')
+                        alert = driver.switch_to.alert
+                        alert.accept()
+                        print('Alert accepted')
+                        if i == 0:
+                            file_type='.txt'
+                            print('File is a text file')
+                        else:
+                            file_type = '.pdf'
+                            print('File is a pdf file')
+                        file_name = f'VT-{label}-{yq}-{mapper2[report]}{file_type}'
+                        print(f'File name is {file_name}\n')
+                        if check_for_error() == 1:
+                            print('Error')
+                            driver.refresh()
+                            continue
+                        else:
+                            print('No Error Found')
+                            pass                        
+                        while file_name not in os.listdir():
+                            time.sleep(1)
+                        #Now open the file and return the NDCs associated to the label code and program
+                        if file_type =='.txt':
+                            read_flag = 0
+                            while read_flag==0:
+                                try:
+                                    with open(file_name) as f:
+                                        lines = f.readlines()
+                                        ndcs = list(set([line[6:17] for line in lines]))
+                                        ndcs = [ndc for ndc in ndcs if len(ndc)>1]
+                                        reference_list.append((label,report,ndcs))
+                                    read_flag=1
+                                except PermissionError as ex:
+                                    pass
+                        else:
                             pass
+                        try:
+                            report_value = mapper2[report]
+                            flex_name = mapper[report_value]
+                        except KeyError as err:
+                            flex_name = report
+                        new_name = f'VT_{flex_name}_{qtr}Q{yr}_{label}{file_type}'
+                        path =  f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\Vermont\\{flex_name}\\{yr}\\Q{qtr}\\'
+                        if os.path.exists(path)==False:
+                            os.makedirs(path)
+                        shutil.move(file_name,path+new_name)
+                        success=1
+                    except:
+                        counter +=1
+                        print(f'Error occurred while obtaining invoice for {report} for labeler {label}')
+                        driver.back()
+                        code_select().select_by_visible_text(label)
+                        time.sleep(1)
+                        type_select().select_by_index(types.index(report)+1)
+                        time.sleep(1)
+                        submit = driver.find_element_by_xpath('//input[@id="invSubmit"]')
+                        print(f'Requesting report for {report} {label} \n')
+                        submit.click()
+                        wait.until(EC.staleness_of(submit))
+                    if counter >0:
+                        continue_flag = 1
+                        break
+                if continue_flag ==1:
+                    break
                 else:
                     pass
-                try:
-                    report_value = mapper2[report]
-                    flex_name = mapper[report_value]
-                except KeyError as err:
-                    flex_name = report
-                new_name = f'VT_{flex_name}_{qtr}Q{yr}_{label}{file_type}'
-                path =  f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\Vermont\\{flex_name}\\{yr}\\Q{qtr}\\'
-                if os.path.exists(path)==False:
-                    os.makedirs(path)
-                shutil.move(file_name,path+new_name)
+            if continue_flag ==1:
+                continue
+            else:
+                pass
         from collections import defaultdict
         master_dict = defaultdict(dict)        
         for label, report, ndcs in reference_list:
@@ -239,12 +330,12 @@ def getReports(num,chunks):
             while success==0:
                 try:
                     report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
-                    select_report = Select(report)
-                    if program == 'Jcode':
-                        select_report.select_by_index(2)
+                    select_report = lambda: Select(report)
+                    if program == 'JCode':
+                        select_report().select_by_index(2)
                         print('1')
                     else:
-                        select_report.select_by_index(1)
+                        select_report().select_by_index(1)
                         print('2')
                     ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
                     print('a')
@@ -266,7 +357,10 @@ def getReports(num,chunks):
                     soup = BeautifulSoup(driver.page_source,'html.parser')
                     Reports = [x.text.strip() for x in soup.find_all('td')]
                     report_type = types_2[types.index(program)]
-                    key = f'EXT Claim Level Detail Report Report for {ndc} VT {yq} {report_type}'
+                    if program == 'JCode':
+                        key = f'EXT JCODE CLD Report for {ndc} VT {yq} JCode'
+                    else:
+                        key = f'EXT Claim Level Detail Report Report for {ndc} VT {yq} {report_type}'
                     print('c')
                     if any(map((lambda x: key in x),Reports)):
                         success=1
@@ -278,6 +372,9 @@ def getReports(num,chunks):
                 except TimeoutException as ex:
                     driver.refresh()
                     pass
+                except NoSuchElementException as ex:
+                    print(ex)
+                    print('Moving on')
     
     driver.close()
     
@@ -329,7 +426,8 @@ def download_reports():
     reports_tab.click()                
     report = lambda: driver.find_element_by_xpath('//select[@id="reportList"]')
     report_select = lambda: Select(report())
-    
+    report_select().select_by_index(1)
+    time.sleep(2)
     types = driver.find_element_by_xpath('//select[@id="docType"]')
     types_select = Select(types)
     programs = [x.text for x in types_select.options][1:]
@@ -441,6 +539,7 @@ def multi_grabber(chunks):
 def main():
    
     grabber = Vermont_Grabloid()
+    grabber.delete_old_reports()
     yq, username, password, master_dict,types,reference_list = grabber.get_invoices()  
     chunks = make_chunks(master_dict)
     getReports(1,chunks)
