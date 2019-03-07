@@ -41,7 +41,7 @@ class PrimsDownloadGrabloid(Grabloid):
         super().__init__(script='Prims')
 
     def pull(self):
-        statesII = {
+        states = {
             'AK': 'Alaska',
             'AL': 'Alabama',
             'AR': 'Arkansas',
@@ -110,9 +110,7 @@ class PrimsDownloadGrabloid(Grabloid):
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]
     
-        driver.get('https://www.primsconnect.molinahealthcare.com/_layouts/fba/primslogin.aspx?ReturnUrl=%2f_layouts%2fAuthenticate.aspx%3fSource%3d%252FSitePages%252FHome%252Easpx&Source=%2FSitePages%2FHome%2Easpx')
-        driver = driver
-        flex_mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Programs', usecols='B,C,D',dtype='str',names=['state','flex_id','state_id'])
+        driver.get('https://primsconnect.dxc.com ')
         fl_flex_mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='F,G',dtype='str',names=['flex_id','state_id'])
         wv_flex_mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='Q,R',dtype='str',names=['flex_id','state_id'])
         fl_flex_mapper = dict(zip(fl_flex_mapper['state_id'],fl_flex_mapper['flex_id']))
@@ -128,7 +126,7 @@ class PrimsDownloadGrabloid(Grabloid):
             login.click()   
         login_proc()
         #Now inside the webpage, begin selection process
-        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radLnkSubmitRequest_input"]')))
+        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Submit Request"]')))
         submit_request.click()    
         
         yq2 = '{}Q{}'.format(qtr,yr)
@@ -140,9 +138,9 @@ class PrimsDownloadGrabloid(Grabloid):
         state_programs = {}
         invoices_obtained = []
         
-        invoice_request_page =  wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_rtsRequest"]/div/ul/li[2]/a/span/span/span')))
+        invoice_request_page =  wait.until(EC.element_to_be_clickable((By.XPATH,'//span[text()="Electronic Invoice (TXT)"]')))
         invoice_request_page.click()  
-        wait.until(EC.staleness_of((invoice_request_page)))
+        wait.until(EC.presence_of_element_located((By.XPATH,'//td/span[contains(@id,"AvailableQuarterLabelValue")]')))
         #have to select the state to get the state programs to populate
         
         #The below block of code is creating the state: programcode:program name dictionary
@@ -153,7 +151,7 @@ class PrimsDownloadGrabloid(Grabloid):
         for state in states:
             try:
                 print('Checking state drop down value')
-                drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_StateDropDown_Input"]')))
+                drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
                 if drop_down.get_attribute('value')==state:
                     print('State already selected')
                     pass
@@ -162,7 +160,7 @@ class PrimsDownloadGrabloid(Grabloid):
                     xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown")]//li[text()="{}"]'.format(state)
                     state_to_select = driver.find_element_by_xpath(xpath)
                     ActionChains(driver).move_to_element(drop_down).click().pause(1).move_to_element(state_to_select).click().perform()
-                    wait.until(EC.staleness_of(drop_down))
+                    time.sleep(7)
                     print('State selected.')
                 soup = BeautifulSoup(driver.page_source,'html.parser')
                 print('Parsing lists...')
@@ -311,12 +309,12 @@ def main():
     grabber.pull()
 
 if __name__=='__main__':
-    main()     
-        
-        
-        
-        
-        
+    main()
+'''
+driver = grabber.driver        
+qtr, yr, login_credentials = grabber.qtr, grabber.yr, grabber.credentials        
+wait = grabber.wait        
+'''        
         
         
         

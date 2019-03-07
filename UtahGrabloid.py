@@ -178,7 +178,7 @@ class UtahGrabloid(Grabloid):
                         print('Waiting for file to download')
                         time.sleep(1)
                     file = os.listdir()[0]
-                    path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Invoices\\{state}\\{program}\\{yr}\\{qtr}'
+                    path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\{state}\\{program}\\{yr}\\{qtr}'
                     if os.path.exists(path) == False:
                         os.makedirs(path)
                     extension = '.txt'
@@ -186,9 +186,12 @@ class UtahGrabloid(Grabloid):
                     move_flag = 0
                     while move_flag == 0:
                         try:
+                            file = os.listdir()[0]
                             shutil.move(file,os.path.join(path,cms_file_name))
                             move_flag = 1
-                        except:
+                        except Exception as ex:
+                            print(f'Failed to move {file}')
+                            print(ex)
                             time.sleep(1)
                     #have the cms format, now grab pdf
                     print(f'Obtaining PDF format for {program}')
@@ -202,9 +205,12 @@ class UtahGrabloid(Grabloid):
                     move_flag = 0
                     while move_flag == 0:
                         try:
+                            file = os.listdir()[0]
                             shutil.move(file,os.path.join(path,pdf_file_name))
                             move_flag = 1
-                        except:
+                        except Exception as ex:
+                            print(f'Failed to move {file}')
+                            print(ex)
                             time.sleep(1)
 
                     

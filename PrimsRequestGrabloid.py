@@ -48,7 +48,7 @@ class PrimsGrabloid(Grabloid):
         driver.implicitly_wait(30)
         wait = WebDriverWait(driver,15)
     
-        driver.get('https://www.primsconnect.molinahealthcare.com/_layouts/fba/primslogin.aspx?ReturnUrl=%2f_layouts%2fAuthenticate.aspx%3fSource%3d%252FSitePages%252FHome%252Easpx&Source=%2FSitePages%2FHome%2Easpx')
+        driver.get('https://primsconnect.dxc.com')
         i_accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_RadCheckBoxAccept"]/span[1]')))
         i_accept.click()
         user_name = driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_txtUserName"]')
@@ -61,12 +61,12 @@ class PrimsGrabloid(Grabloid):
         yq2 = 'Q{}-{}'.format(qtr,yr)
         yq3 = '{}-Q{}'.format(yr,qtr)
         #Now inside the webpage, begin selection process
-        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radLnkSubmitRequest_input"]')))
-        submit_request.click()    
+        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Submit Request"]')))
+        submit_request.click()      
         
         #Now in the request page, navigate to invoice tab
         
-        invoice_request_page = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_rtsRequest"]/div/ul/li[2]/a/span/span/span')))
+        invoice_request_page = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//span[text()="Electronic Invoice (TXT)"]')))
         soup = BeautifulSoup(driver.page_source,'html.parser')
         lists = soup.find_all('ul',attrs={'class':'rcbList'})    
         states = [x.text for x in lists[0]]    
@@ -75,11 +75,12 @@ class PrimsGrabloid(Grabloid):
         retrieved = []
         for page in pages:
             try:
-                reset_button = driver.find_element_by_xpath('//span[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_EInvoiceResetButton"]')
+                reset_button = driver.find_element_by_xpath('//input[@value="Reset"]')
                 page().click()
                 wait.until(EC.staleness_of(reset_button))
                 
                 for state in states:
+                    #first make sure the right state is selected
                     state_input = driver.find_element_by_xpath('//input[contains(@name,"StateDropDown")]')
                     if state_input.get_attribute('value')==state:
                         pass
@@ -87,10 +88,13 @@ class PrimsGrabloid(Grabloid):
                         state_to_select = driver.find_element_by_xpath('//div[contains(@id,"StateDropDown")]//li[text()="'+state+'"]')
                         ActionChains(driver).move_to_element(state_input).click().pause(1).click(state_to_select).pause(1).perform()
                         wait.until(EC.staleness_of(state_input))
+                    #now get all the programs for the drop downs
                     soup = BeautifulSoup(driver.page_source,'html.parser')
                     lists = soup.find_all('ul',attrs={'class':'rcbList'})
                     programs = [x.text for x in lists[1]]
+                    
                     for program in programs:
+                        #Make sure the right program is slected, if not select it
                         program_drop_down = driver.find_element_by_xpath('//input[contains(@id,"ProgramDropDown_Input")]')
                         if program_drop_down.get_attribute('value')==program:
                             pass
@@ -106,34 +110,39 @@ class PrimsGrabloid(Grabloid):
                                     stale_flag=1
                                 except TimeoutException as ex:
                                     continue
-                        if page==invoice_request_page:
+                        #e-invoice and pdf request pages are different, require different checks
+                        #to make sure that the invoice is available
+                        #so, in the following if-else I check first that the invoice is available then I get it
+                        if page == invoice_request_page:
                             date_checker = driver.find_element_by_xpath('//span[contains(@id,"AvailableQuarterLabelValue")]')
                             if date_checker.text == yq2:
                                 cont_flag = 0
                                 codes = driver.find_elements_by_xpath('//li[contains(@id,"_ELabelerCodeListBox_")]')
                                 ActionChains(driver).move_to_element(codes[0]).click().key_down(Keys.SHIFT).move_to_element(codes[-1]).click().key_up(Keys.SHIFT).perform()
-                                submit = driver.find_element_by_xpath('//span[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_EInvoiceSubmitButton"]')
-                                wait.until(EC.element_to_be_clickable((By.XPATH,'//span[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_EInvoiceSubmitButton"]')))
+                                submit = driver.find_elements_by_xpath('//input[@value="Submit" and @type="submit" and contains(@id,"InvoiceSubmitButton_input")]')[1]
                                 retrieved.append(state+' '+program+' '+'CMS Format')
                             else:
                                 cont_flag = 1
                         else:
-                            print('a')
+                            print('Parsing page')
                             soup2 = BeautifulSoup(driver.page_source,'html.parser')
+                            print('Obtaining dates')
                             dates = [x.text for x in soup2.find_all('li') if len(x.text)==len(yq3)]
+                            #makes sure the drop down has the dates
+                            print('checking dates')
                             if any(yq3 in x for x in dates):
-                                print('b')
+                                print('Current quarter available')
                                 cont_flag = 0
                                 year_quarter_select = driver.find_element_by_xpath('//input[contains(@id,"PIFYearQuarterDropDown_Input")]')                
                                 year_quart_to_select = driver.find_element_by_xpath('//div[contains(@id,"PIFYearQuarterDropDown_DropDown")]//li[text()="{}"]'.format(yq3))                   
                                 ActionChains(driver).move_to_element(year_quarter_select).click().pause(1).move_to_element(year_quart_to_select).click().pause(1).perform()
                                 codes = driver.find_elements_by_xpath('//div[@title="Select LabelerCode"]//li[contains(@id,"_ctl00_LabelerCodeListBox_")]')
+                                print('Codes Selected, attempting download')
                                 ActionChains(driver).move_to_element(codes[0]).click().key_down(Keys.SHIFT).move_to_element(codes[-1]).click().key_up(Keys.SHIFT).perform()
-                                submit = driver.find_element_by_xpath('//span[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_InvoiceSubmitButton"]')
-                                wait.until(EC.element_to_be_clickable((By.XPATH,'//span[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_InvoiceSubmitButton"]')))
                                 retrieved.append(state+' '+program+' '+'PDF Format')
+                                submit = driver.find_elements_by_xpath('//input[@value="Submit" and @type="submit" and contains(@id,"InvoiceSubmitButton_input")]')[1]
                             else:
-                                print('c')
+                                print('date check failed')
                                 cont_flag = 1
                         if cont_flag == 1:
                             continue
@@ -147,7 +156,8 @@ class PrimsGrabloid(Grabloid):
                                 stale_flag=1
                             except TimeoutException as ex:
                                 continue
-            except:
+            except Exception as ex:
+                print(ex.with_traceback)
                 i_accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_RadCheckBoxAccept"]/span[1]')))
                 i_accept.click()
                 user_name = driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_txtUserName"]')

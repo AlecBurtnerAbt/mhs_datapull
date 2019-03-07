@@ -108,7 +108,7 @@ class PrimsDownloadGrabloid(Grabloid):
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]
         driver = self.driver
-        driver.get('https://www.primsconnect.molinahealthcare.com/_layouts/fba/primslogin.aspx?ReturnUrl=%2f_layouts%2fAuthenticate.aspx%3fSource%3d%252FSitePages%252FHome%252Easpx&Source=%2FSitePages%2FHome%2Easpx')
+        driver.get('https://primsconnect.dxc.com')
         wait = self.wait
         i_accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_RadCheckBoxAccept"]/span[1]')))
         i_accept.click()
@@ -120,8 +120,8 @@ class PrimsDownloadGrabloid(Grabloid):
         login = driver.find_element_by_xpath('//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_btnLogin_input"]')
         login.click()          
         #Now inside the webpage, begin selection process
-        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radLnkSubmitRequest_input"]')))
-        submit_request.click()    
+        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Submit Request"]')))
+        submit_request.click()   
         
         yq2 = '{}Q{}'.format(qtr,yr)
         yq3 = '{}-Q{}'.format(yr,qtr)
@@ -132,9 +132,9 @@ class PrimsDownloadGrabloid(Grabloid):
         state_programs = {}
         invoices_obtained = []
         
-        invoice_request_page =  wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_rtsRequest"]/div/ul/li[2]/a/span/span/span')))
+        invoice_request_page =  wait.until(EC.element_to_be_clickable((By.XPATH,'//span[text()="Electronic Invoice (TXT)"]')))
         invoice_request_page.click()  
-        wait.until(EC.staleness_of((invoice_request_page)))
+        wait.until(EC.presence_of_element_located((By.XPATH,'//td/span[contains(@id,"AvailableQuarterLabelValue")]')))
         #have to select the state to get the state programs to populate
         
         #The below block of code is creating the state: programcode:program name dictionary
@@ -144,7 +144,7 @@ class PrimsDownloadGrabloid(Grabloid):
         
         for state in states:
             print('Checking state drop down value')
-            drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_StateDropDown_Input"]')))
+            drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
             if drop_down.get_attribute('value')==state:
                 print('State already selected')
                 pass
