@@ -30,7 +30,7 @@ import gzip
 import numpy as np
 import xlsxwriter as xl
 from pandas.errors import EmptyDataError
-from grabloid import Grabloid
+from grabloid import Grabloid, push_note
 
 class ConnecticutGrabloid(Grabloid):
     def __init__(self):
@@ -278,7 +278,7 @@ class ConnecticutGrabloid(Grabloid):
         driver.close()
         return pulled_invoices
     
-@push_note
+@push_note(__file__)
 def main():
     grabber = ConnecticutGrabloid()
     invoices = grabber.pull()

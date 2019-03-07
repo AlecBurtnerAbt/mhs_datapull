@@ -47,6 +47,8 @@ class Alabama_Grabloid(Grabloid):
         mapper = dict(zip(mapper.iloc[:,0],mapper.iloc[:,1]))
         for account in self.usernames:
             try:
+                #initialize empty ndc list 
+                ndcs = []
                 driver.get('https://www.medicaid.alabamaservices.org/ALPortal/')
                 #Move to the drop down, hover and click "Secure Site"
                 drop_down =wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@title="Account"]')))
@@ -58,60 +60,83 @@ class Alabama_Grabloid(Grabloid):
                 pw.send_keys(password)
                 login_button = driver.find_element_by_xpath('//a[contains(text(),"login")]')
                 login_button.click()
-            
+                
                 #Move to trade files, hover and click for invoics
                 trade_files = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@title="Trade Files"]')))
                 invoices = driver.find_element_by_xpath('//a[@title="Download"]')    
                 ActionChains(driver).move_to_element(trade_files).move_to_element(invoices).click().perform()    
-            
+                print('A')
                 #Drop down menu permits selection of invoice
                 #type.  Get options and iterate through. 
                 
                 types = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[contains(@name,"TransactionType")]')))    
                 types_select = lambda: Select(types())   
                 types_to_get = [1,2,3]
+                print('B')
                 for report in types_to_get:
+                    print('B1')
                     types_select().select_by_index(report)  
-                    search_button = lambda: driver.find_element_by_xpath('//a[@title="Search using the specified criteria"]')
-                    button = search_button()
-                    button.click()
-    
+                    print('B2')
+                    search_button = lambda: driver.find_element_by_xpath('//a[@title="Search using the specified criteria"]')  
+                    print('B3')
+                    canary = search_button()
+                    search_button().click()
+                    print('B4')
                     try:
+                        print('B5')
                         alert = driver.switch_to.alert
                         alert.accept()
                     except NoAlertPresentException as ex:
                         pass
-                    wait.until(EC.staleness_of(button))
+                    wait.until(EC.staleness_of(canary))
+                    print('C')
                     if report !=1:
                         invoice_period = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[contains(@name,"InvoicePeriod")]')))
                         invoice_period.clear()            
                         invoice_period.send_keys(str(qtr)+'/'+str(yr))
                         search_button().click()
-                        file = driver.find_element_by_xpath('//tr[@class="iC_DataListItem"]//td[2]')            
-                        file.click()
-                        while len(os.listdir())==0:
-                            time.sleep(1)
-                        while any(map((lambda x: 'RBT' in x), os.listdir()))==False:
-                            time.sleep(1)
-                        while any(map((lambda x: 'crdownload' in x),os.listdir())) or any(map((lambda x: 'tmp' in x),os.listdir())):
-                            time.sleep(1)
-                        file = os.listdir()[0]
-                        label_code = file.split('.')[1]            
-                        
-                        if file[-3:]=='pdf':
-                            name = label_code+'_'+str(yr)+'Q'+str(qtr)+file[-4:]
-                        else:
-                            with open(file) as ax:
-                                lines = ax.readlines()
-                            ndcs = list(set([x[6:17] for x in lines])) 
-                            name = label_code+'_'+str(yr)+'Q'+str(qtr)+'.txt'
-                        path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\Alabama\\CMS\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
-                        if os.path.exists(path)==False:
-                            os.makedirs(path)
-                        else:
-                            pass
-                        invoices_obtained.append(name)
-                        shutil.move(file,path+name)
+                        files = driver.find_elements_by_xpath('//tr[contains(@class,"iC_DataList")]//td[2]')[2:]     
+                        file_counter = 0
+                        print('D')
+                        for file in files:
+                            file_counter +=1
+                            file.click()
+                            while len(os.listdir())==0:
+                                time.sleep(1)
+                            while any(map((lambda x: 'RBT' in x), os.listdir()))==False:
+                                time.sleep(1)
+                            while any(map((lambda x: 'crdownload' in x),os.listdir())) or any(map((lambda x: 'tmp' in x),os.listdir())):
+                                time.sleep(1)
+                            file = os.listdir()[0]
+                            label_code = file.split('.')[1]            
+                            print('E')
+                            if file[-3:]=='pdf':
+                                name = label_code+'_'+str(yr)+'Q'+str(qtr)+file[-4:]
+                            else:
+                                with open(file) as ax:
+                                    lines = ax.readlines()
+                                for ndc in list(set([x[6:17] for x in lines])):
+                                    ndcs.append(ndc)
+                                name = label_code+'_'+str(yr)+'Q'+str(qtr)+'.txt'
+                                print(f'NDCS to get are',ndcs)
+                            path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\Alabama\\CMS\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                            if os.path.exists(path)==False:
+                                os.makedirs(path)
+                            else:
+                                pass
+                            print('F')
+                            if name in os.listdir(path):
+                                name = name.replace('.',f'_{file_counter}.')
+                            invoices_obtained.append(name)
+                            shutil.move(file,path+name)
+                            time.sleep(8)
+                            try:
+                                alert = driver.switch_to.alert
+                                alert.accept()
+                            except NoAlertPresentException as ex:
+                                pass
+                            
+                            
                     else:
                         file = driver.find_element_by_xpath('//tr[@class="iC_DataListItem"]//td[2]')            
                         file.click()
@@ -173,6 +198,11 @@ class Alabama_Grabloid(Grabloid):
                                     continue
                                 else:
                                     pass
+                                try:
+                                    wait2.until(EC.presence_of_element_located((By.XPATH,'//th[contains(text(),"No rows found")]')))
+                                    continue
+                                except:
+                                    pass
                                 download_link = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[text()="Download File"]')))                    
                                 success_flag = 0 
                                 while success_flag == 0:
@@ -225,9 +255,10 @@ class Alabama_Grabloid(Grabloid):
                             else:
                                 pass
                             shutil.move(file_name,path+file_name)
-            except:
-               print('An error occured')
-               pass
+            except Exception as ex:
+                print(ex)    
+                print('An error occured')
+                pass
                         
                     
             drop_down =wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@title="Account"]')))

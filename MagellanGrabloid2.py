@@ -109,7 +109,7 @@ class MagellanGrabloid(Grabloid):
             'Unison' :'Ohio'
         }
         #make sure the directory is the downloads folder!
-        
+        states_2 = dict(zip(states.values(),states.keys()))
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]
         to_address = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Notification Address', usecols='A',dtype='str',names=['Email'],header=None).iloc[0,0]
@@ -211,7 +211,11 @@ class MagellanGrabloid(Grabloid):
                 elif program.split(' ')[0] =='Arkansas':
                     state = 'AR'
                 else:
-                    state = program.split(' ')[0]
+                    for full_state in states.values():
+                        if full_state in program.split(' ')[0]:
+                            state = states_2[full_state] 
+                            break
+                print(state)
                 try:
                     lilly_code = mapper[program]
                 except KeyError as err:
@@ -562,8 +566,8 @@ class MagellanGrabloid(Grabloid):
                     state = 'NC'
                 else:
                     for full_state in states.values():
-                        if full_state in state:
-                            state = full_state 
+                        if full_state in item[1].split(' ')[0]:
+                            state = states_2[full_state] 
                             break
                 try:
                     folder_name =' '.join(item[1].split(' ')[1:])
@@ -598,7 +602,7 @@ class MagellanGrabloid(Grabloid):
 @push_note(__file__)
 def main():
     cld_only = False
-    efficient = False
+    efficient = True
     grabber = MagellanGrabloid()
     if cld_only == False:
         cld, invoices = grabber.pull(efficient=efficient) 

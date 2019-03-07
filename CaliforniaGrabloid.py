@@ -168,21 +168,20 @@ class CaliforniaGrabloid(Grabloid):
                 xl_id = 'MCOU'
             else:
                 xl_id = 'FFSU'
-            data = pd.read_csv(file,sep='~',names=list(range(0,17)))
-            data[17],data[18] = 0,0
+            data = pd.read_csv(file,sep='~',names=list(range(0,17)), dtype='str')
+            data[17],data[18] = '0','0'
             data[3] = data[3].fillna('0000000000')
-            data = data.fillna(0)
+            data = data.fillna('0')
             for row in range(len(data)):
                 if data.iloc[row,1]==qtr and data.iloc[row,0]==yr:
                     data.iloc[row,16]= data.iloc[row,5]
                     data.iloc[row,17]= data.iloc[row,8]
-                    data.iloc[row,18]= 0
+                    data.iloc[row,18]= '0'
                 else:
                     data.iloc[row,16] = data.iloc[row,6]
-                    data.iloc[row,17] = round(data.iloc[row,11]+data.iloc[row,12],2)
-                    data.iloc[row,18] = 1
+                    data.iloc[row,17] = str(round(float(data.iloc[row,11])+float(data.iloc[row,12]),2))
+                    data.iloc[row,18] = '1'
             data = data.astype(str)
-            data[2] = data[2].str.pad(width=11,side='left',fillchar='0')
             data[3] = [x[:10] for x in data[3]]
             data[7] = [x.split('.')[0].rjust(5,'0')+'.'+x.split('.')[1][:6].ljust(6,'0') for x in data[7]]
             for i in range(len(data)):
@@ -192,10 +191,18 @@ class CaliforniaGrabloid(Grabloid):
                     data.iloc[i,16] = '-'+data.iloc[i,16].split('.')[0].replace('-','').rjust(11,'0')+'.'+data.iloc[i,16].split('.')[1][:3].ljust(3,'0')
             data[17] = [x.split('.')[0].rjust(9,'0')+'.'+x.split('.')[1][:2].ljust(2,'0') for x in data[17]]        
             data[9] = [x.rjust(8,'0') for x in data[9]]
-            data[14] = [x.split('.')[0].rjust(10,'0')+'.'+x.split('.')[1][:2].ljust(2,'0') for x in data[14]]
+            for row in range(len(data)):
+                if data.iloc[row,14] == '0':
+                    data.iloc[row,14] = '0000000000.00'
+                else:
+                    data.iloc[row,14]= data.iloc[row,14].split('.')[0].rjust(10,'0')+'.'+data.iloc[row,14].split('.')[1][:2].ljust(2,'0')
+            #data[14] = [x.split('.')[0].rjust(10,'0')+'.'+x.split('.')[1][:2].ljust(2,'0') for x in data[14]]
             data[13] = [x.split('.')[0].rjust(10,'0')+'.'+x.split('.')[1][:2].ljust(2,'0') for x in data[13]]
             data[15] = [x.split('.')[0].rjust(11,'0')+'.'+x.split('.')[1][:2].ljust(2,'0') for x in data[15]]
             data['Z'] = xl_id + 'CA' + data[2]+data[1]+data[0]+data[3]+data[7]+data[16]+data[17]+data[9]+data[14]+data[13]+data[15]+data[18]
+            '''
+                        "FFSU"   "CS"  "NDC"   "T1"            "D1"    "H1"     "U1"     "V1"    "J1"      "O1"   "N1"      "P"     "W"
+            '''
             formatted= data[['Z']]
             formatted.to_csv(file,index=False,header=False)    
             
