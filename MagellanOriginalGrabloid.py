@@ -226,11 +226,14 @@ class MagellanOriginalGrabloid(Grabloid):
                     print('d')
             
                     for k, label, code in zip(range(0,len(codes)),labels(),codes):
-                        
                         success_flag=0
                         labels()[k].click()
                         print('f')
-                        file_name = '{}_{}_{}Q{}_{}.xls'.format(state_mapper[lis[2]],program_mapper[prog_code],qtr,yr,code)
+                        try:
+                            program_file_name = program_mapper[prog_code]
+                        except KeyError:
+                            progam_file_name = prog_code
+                        file_name = '{}_{}_{}Q{}_{}.xls'.format(state_mapper[lis[2]],program_file_name,qtr,yr,code)
                         print('g')
             
                         while success_flag ==0:

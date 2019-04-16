@@ -38,7 +38,7 @@ class OhioGrabloid(Grabloid):
 
 
 
-    def pull():
+    def pull(self):
         driver = self.driver
         yr = self.yr
         qtr = self.qtr
@@ -240,13 +240,14 @@ class OhioGrabloid(Grabloid):
                 
 def main():
     grabber = OhioGrabloid()
-    
+    grabber.pull()
     
 if __name__=='__main__':
     main()
 
 
-
+'''
 yr, qtr, login_credentials = grabber.yr, grabber.qtr, grabber.credentials
 driver = grabber.driver
-
+wait = grabber.wait
+'''

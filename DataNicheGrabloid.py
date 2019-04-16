@@ -115,7 +115,8 @@ class DataNicheGrabloid(Grabloid):
         user = self.credentials.iloc[0,0]
         password = self.credentials.iloc[0,1]
         wait = self.wait
-        states_to_get = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='D',dtype='str')
+        states_to_get = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='F',dtype='str')
+        states_to_get = list(states_to_get.iloc[:,0].unique())
         user_name_input = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="username"]')))
         user_name_input.send_keys(user)
         password_input = driver.find_element_by_xpath('//input[@id="password-field"]')
@@ -129,7 +130,7 @@ class DataNicheGrabloid(Grabloid):
         #Find the button bar and the select button
         select_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//div[contains(@class,"btn-group btn-block")]/button[2]')))
         select_button.click()
-        full_states = [states[x] for x in states_to_get.iloc[:,0]]
+        full_states = [states[x.strip()] for x in states_to_get]
 
         '''
         This series of loops goes through and approves all labeler codes in all programs 
@@ -137,77 +138,102 @@ class DataNicheGrabloid(Grabloid):
         
         States is highest level loop.
         '''
-        for state in full_states:
-            print(f'State is {state}')
-            sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
-            ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
-            print(f'Clicked on {state}')
-            #Identify programs and begin program loop            
-            programs = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//button[@ng-click="moveToVerify(program, 'dnacld');"]''')
-            programs_names = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//div[@class="type3 prShort pLeftZ ng-binding"]''')
-            '''
-            Start looping through programs begins below
-            '''    
-            for i,program in enumerate(programs()):
-                print(f'Program is {programs_names()[i].text}')
-                ActionChains(driver).move_to_element(programs()[i]).click().perform()
-                time.sleep(6)
-                wait.until(EC.presence_of_element_located((By.XPATH,'//div[@class="slimScrollDiv"]')))
-                labeler_tabs = lambda: driver.find_elements_by_xpath('//div[@class="slimScrollDiv"]//li')[1:]                
-                #We now have the labeler tabs, time to loop
-                #through the tabs and approve the data         
-                '''
-                Start looping through labelers begins below
-                ''' 
-                for j, labeler in enumerate(labeler_tabs()):
-                    print(f'Labeler is {labeler_tabs()[j].text}')
-                    ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
-                    time.sleep(8)
-                    approve_button = driver.find_element_by_xpath("""//button[@ng-click="ApproveOrRejectVerified('approve')"]""")
-                    approve_button.click()
-                    time.sleep(8)
-                    if j != 2:
+        print('---------------------------------------------Approving Data----------------------------------')
+        states_remaining = full_states
+        print('Approving all data.')
+        while len(states_remaining)>0:
+            try:
+                for state in states_remaining:
+                    print(f'State is {state}')
+                    sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
+                    ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
+                    print(f'Clicked on {state}')
+                    #Identify programs and begin program loop            
+                    programs = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//button[@ng-click="moveToVerify(program, 'dnacld');"]''')
+                    programs_names = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//div[@class="type3 prShort pLeftZ ng-binding"]''')
+                    '''
+                    Start looping through programs begins below
+                    '''    
+                    for i,program in enumerate(programs()):
+                        print(f'Program is {programs_names()[i].text}')
                         ActionChains(driver).move_to_element(programs()[i]).click().perform()
                         time.sleep(6)
-                    else:
-                        pass
+                        wait.until(EC.presence_of_element_located((By.XPATH,'//div[@class="slimScrollDiv"]')))
+                        labeler_tabs = lambda: driver.find_elements_by_xpath('//div[@class="slimScrollDiv"]//li')[1:]                
+                        #We now have the labeler tabs, time to loop
+                        #through the tabs and approve the data         
+                        '''
+                        Start looping through labelers begins below
+                        ''' 
+                        for j, labeler in enumerate(labeler_tabs()):
+                            print(f'Labeler is {labeler_tabs()[j].text}')
+                            ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
+                            time.sleep(8)
+                            approve_button = driver.find_element_by_xpath("""//button[@ng-click="ApproveOrRejectVerified('approve')"]""")
+                            approve_button.click()
+                            time.sleep(8)
+                            if j != 2:
+                                ActionChains(driver).move_to_element(programs()[i]).click().perform()
+                                time.sleep(6)
+                            else:
+                                pass
+                    states_remaining.remove(state)
+                    print()
+            except NoSuchElementException as ex:
+                select_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//div[contains(@class,"btn-group btn-block")]/button[2]')))
+                select_button.click()
+                for state in success_checker.keys():
+                    if success_checker[state] == 1:
+                        states_remaining.remove(state)
+                        print(f'Removing {state} from states to approve, already approved')
+                
+            
         '''
         The code below goes back through each state and program and requests the reports to download
         
         '''
-        for state in full_states:
-            print(f'State is {state}')
-            sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
-            ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
-            print(f'Clicked on {state}')
-            validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
-            
-            for i, program in enumerate(validations()):
-                print(f'Program is {program.text}')
-                ActionChains(driver).move_to_element(validations()[i]).click().perform()
-                time.sleep(8)
-                val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
-                ActionChains(driver).move_to_element(val_summer).click().perform()
-                time.sleep(8)
-                download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
-                download_report.click()
-                time.sleep(8)
-                CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
-                CLD_options.click()
-                time.sleep(8)
-                download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
-                download_button.click()
-                time.sleep(8)
-                popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
-                popup_accept.click()
-                time.sleep(8)
-                validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
-                validate_all_button.click()
-                time.sleep(8)
-                back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
-                back_to_state_programs_button.click()
-                time.sleep(8)
-                wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
+        print('---------------------------------------------Requesting Downloads----------------------------------')
+        request_success = { state:0 for state in full_states}
+        states_to_request = full_states
+        while len(states_to_request)>0: 
+            try:
+                for state in full_states:
+                    print(f'State is {state}')
+                    sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
+                    ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
+                    print(f'Clicked on {state}')
+                    validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
+                    
+                    for i, program in enumerate(validations()):
+                        print(f'Requesting {program.text}')
+                        ActionChains(driver).move_to_element(validations()[i]).click().perform()
+                        time.sleep(8)
+                        val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
+                        ActionChains(driver).move_to_element(val_summer).click().perform()
+                        time.sleep(8)
+                        download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
+                        download_report.click()
+                        time.sleep(8)
+                        CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
+                        CLD_options.click()
+                        time.sleep(8)
+                        download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
+                        download_button.click()
+                        time.sleep(8)
+                        popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
+                        popup_accept.click()
+                        time.sleep(8)
+                        validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
+                        validate_all_button.click()
+                        time.sleep(8)
+                        back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
+                        back_to_state_programs_button.click()
+                        time.sleep(8)
+                        wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
+                states_to_request.remove(state)
+            except StaleElementReferenceException:
+                driver.refresh()
+                
         #Now all data has been validated and all reports have been requested.  Have to 
         #navigate to the "My Reports" section and download all reports while only selecting 
         #each report once

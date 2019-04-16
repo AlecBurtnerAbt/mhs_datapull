@@ -150,9 +150,11 @@ class PrimsDownloadGrabloid(Grabloid):
                 pass
             else:
                 print('Selecting state...')
+                drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                ActionChains(driver).move_to_element(drop_down).click().pause(5).perform()
                 xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown")]//li[text()="{}"]'.format(state)
                 state_to_select = driver.find_element_by_xpath(xpath)
-                ActionChains(driver).move_to_element(drop_down).click().pause(1).move_to_element(state_to_select).click().perform()
+                ActionChains(driver).move_to_element(state_to_select).click().pause(5).perform()
                 wait.until(EC.staleness_of(drop_down))
                 print('State selected.')
             soup = BeautifulSoup(driver.page_source,'html.parser')
@@ -164,7 +166,7 @@ class PrimsDownloadGrabloid(Grabloid):
             programs = dict(zip(codes,name))
             print('Program mapper updated')
             state_programs.update({state:programs})        
-        driver.back()
+        driver.back() 
         try:
             alert = driver.switch_to.alert
             alert.accept()
@@ -176,10 +178,10 @@ class PrimsDownloadGrabloid(Grabloid):
        
         
         #Chane the number of reports per page
-        number_per_page = driver.find_element_by_xpath('//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radGridRequestSummary_ctl00_ctl03_ctl01_ChangePageSizeTextBox"]')
+        number_per_page = wait.until(EC.presence_of_element_located((By.XPATH,'//input[contains(@id,"ChangePageSizeTextBox")]')))
         number_per_page.clear()    
-        number_per_page.send_keys('10000')    
-        inter=driver.find_element_by_xpath('//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radGridRequestSummary_ctl00_ctl03_ctl01_ChangePageSizeLinkButton"]')
+        number_per_page.send_keys('9999')    
+        inter=driver.find_element_by_xpath('//input[@type="submit" and @value="Change"]')
         inter.click()
         #Get the pages downloads are on
         pages = lambda: driver.find_elements_by_xpath('//div[@class="rgWrap rgNumPart"]/a')     
@@ -237,23 +239,30 @@ class PrimsDownloadGrabloid(Grabloid):
                 
        
         #Have the state : NDC tuples, move onto getting CLD
-        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radLnkSubmitRequest_input"]')))
-        submit_request.click()    
+        submit_request = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Submit Request"]')))
+        submit_request.click()     
         
         
         
         
         for report in ndc_list:
-            state_drop_down = driver.find_element_by_xpath('//input[contains(@name,"$ctl00$StateDropDown")]')
+            print(f'State is {report[0]}')
+            state_drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
             if state_drop_down.get_attribute('value')==statesII[report[0]]:
+                print('State already selected')
                 pass
             else:
-                state_to_select = driver.find_element_by_xpath('//div[contains(@id,"a_ctl00_StateDropDown_DropDown")]//li[contains(text(),"{}")]'.format(statesII[report[0]]))
-                ActionChains(driver).move_to_element(state_drop_down).click().pause(1).move_to_element(state_to_select).click().perform()
+                print('Selecting state')
+                xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown") and @class="RadComboBoxDropDown RadComboBoxDropDown_Vista "]//li[text()="{}"]'.format(statesII[report[0]])
+                cur_val = state_drop_down.get_attribute('value')
+                state_to_select = driver.find_element_by_xpath(xpath)
+                ActionChains(driver).move_to_element(state_drop_down).click().pause(2).move_to_element(state_to_select).click().perform()
                 wait.until(EC.staleness_of(state_drop_down))
-                state_drop_down = driver.find_element_by_xpath('//input[contains(@name,"$ctl00$StateDropDown")]')
-                while state_drop_down.get_attribute('value') !=statesII[report[0]]:
-                    time.sleep(1)
+                state_drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                time.sleep(1)
+                state_drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                cur_val = state_drop_down.get_attribute('value')
+                print(f'wait a tic, state is {statesII[report[0]]} and current value is {cur_val} ')
             selected_flag = 0
     
             soup = BeautifulSoup(driver.page_source,'html.parser')        
@@ -273,7 +282,7 @@ class PrimsDownloadGrabloid(Grabloid):
             from_q.click()
             time.sleep(1)
             while dates_acquired==0:
-                dates =[x.text for x in driver.find_elements_by_xpath('//div[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_FYearQuarterDropDown_DropDown"]//li[contains(text(),"Q")]')]
+                dates =[x.text for x in driver.find_elements_by_xpath('//div[@id="ctl00_SPWebPartManager1_g_72775f67_6a04_4f06_9334_41276e78dec2_ctl00_FYearQuarterDropDown_DropDown"]//li[contains(text(),"Q")]')]
                 if len(dates[0])==0:
                     pass
                 else:
@@ -284,8 +293,8 @@ class PrimsDownloadGrabloid(Grabloid):
             else:
                 from_q = driver.find_element_by_xpath('//input[contains(@name,"$ctl00$FYearQuarterDropDown")]')
                 to_q = driver.find_element_by_xpath('//input[contains(@name,"$ctl00$TYearQuarterDropDown")]')
-                current_qtr = driver.find_element_by_xpath('//div[contains(@id,"a_ctl00_FYearQuarterDropDown_DropDown")]//li[text()="{}"]'.format(yq3))
-                current_qtr2 = driver.find_element_by_xpath('//div[contains(@id,"a_ctl00_TYearQuarterDropDown_DropDown")]//li[text()="{}"]'.format(yq3))
+                current_qtr = driver.find_element_by_xpath('//div[@id="ctl00_SPWebPartManager1_g_72775f67_6a04_4f06_9334_41276e78dec2_ctl00_FYearQuarterDropDown_DropDown"]//li[text()="{}"]'.format(yq3))
+                current_qtr2 = driver.find_element_by_xpath('//div[@id="ctl00_SPWebPartManager1_g_72775f67_6a04_4f06_9334_41276e78dec2_ctl00_TYearQuarterDropDown_DropDown"]//li[text()="{}"]'.format(yq3))
                 ActionChains(driver).move_to_element(from_q).click().pause(1).click(current_qtr).move_to_element(to_q).click().pause(1).move_to_element(current_qtr2).click().perform()
                 
             ndcs = ','.join(report[2])
