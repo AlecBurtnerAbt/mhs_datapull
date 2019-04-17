@@ -23,7 +23,7 @@ import time
 import os
 from win32com.client import Dispatch
 import pandas as pd
-from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotVisibleException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementNotVisibleException, StaleElementReferenceException
 from bs4 import BeautifulSoup
 import gzip
 import shutil
@@ -139,53 +139,55 @@ class DataNicheGrabloid(Grabloid):
         States is highest level loop.
         '''
         print('---------------------------------------------Approving Data----------------------------------')
-        states_remaining = full_states
-        print('Approving all data.')
-        while len(states_remaining)>0:
+        approval_checker = {state:0 for state in full_states} #dictionary with approval request status, default = 0
+        print('Beginning loop')
+        while sum(approval_checker.values())<len(approval_checker.keys()):
             try:
-                for state in states_remaining:
-                    print(f'State is {state}')
-                    sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
-                    ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
-                    print(f'Clicked on {state}')
-                    #Identify programs and begin program loop            
-                    programs = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//button[@ng-click="moveToVerify(program, 'dnacld');"]''')
-                    programs_names = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//div[@class="type3 prShort pLeftZ ng-binding"]''')
-                    '''
-                    Start looping through programs begins below
-                    '''    
-                    for i,program in enumerate(programs()):
-                        print(f'Program is {programs_names()[i].text}')
-                        ActionChains(driver).move_to_element(programs()[i]).click().perform()
-                        time.sleep(6)
-                        wait.until(EC.presence_of_element_located((By.XPATH,'//div[@class="slimScrollDiv"]')))
-                        labeler_tabs = lambda: driver.find_elements_by_xpath('//div[@class="slimScrollDiv"]//li')[1:]                
-                        #We now have the labeler tabs, time to loop
-                        #through the tabs and approve the data         
+                for state in approval_checker.keys():
+                    if approval_checker[state] == 1:
+                        print(f'Programs already approved for {state} moving on')
+                    else:
+                        
+                        print(f'State is {state}')
+                        sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
+                        ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
+                        print(f'Clicked on {state}')
+                        #Identify programs and begin program loop            
+                        programs = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//button[@ng-click="moveToVerify(program, 'dnacld');"]''')
+                        programs_names = lambda: driver.find_elements_by_xpath('''//div[@id="forReview"]//div[@ng-repeat="program in programs"]//div[@class="type3 prShort pLeftZ ng-binding"]''')
                         '''
-                        Start looping through labelers begins below
-                        ''' 
-                        for j, labeler in enumerate(labeler_tabs()):
-                            print(f'Labeler is {labeler_tabs()[j].text}')
-                            ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
-                            time.sleep(8)
-                            approve_button = driver.find_element_by_xpath("""//button[@ng-click="ApproveOrRejectVerified('approve')"]""")
-                            approve_button.click()
-                            time.sleep(8)
-                            if j != 2:
-                                ActionChains(driver).move_to_element(programs()[i]).click().perform()
-                                time.sleep(6)
-                            else:
-                                pass
-                    states_remaining.remove(state)
-                    print()
+                        Start looping through programs begins below
+                        '''    
+                        for i,program in enumerate(programs()):
+                            print(f'Program is {programs_names()[i].text}')
+                            ActionChains(driver).move_to_element(programs()[i]).click().perform()
+                            time.sleep(6)
+                            wait.until(EC.presence_of_element_located((By.XPATH,'//div[@class="slimScrollDiv"]')))
+                            labeler_tabs = lambda: driver.find_elements_by_xpath('//div[@class="slimScrollDiv"]//li')[1:]                
+                            #We now have the labeler tabs, time to loop
+                            #through the tabs and approve the data         
+                            '''
+                            Start looping through labelers begins below
+                            ''' 
+                            for j, labeler in enumerate(labeler_tabs()):
+                                print(f'Labeler is {labeler_tabs()[j].text}')
+                                ActionChains(driver).move_to_element(labeler_tabs()[j]).click().perform()
+                                time.sleep(8)
+                                approve_button = driver.find_element_by_xpath("""//button[@ng-click="ApproveOrRejectVerified('approve')"]""")
+                                approve_button.click()
+                                time.sleep(8)
+                                if j != 2:
+                                    ActionChains(driver).move_to_element(programs()[i]).click().perform()
+                                    time.sleep(6)
+                                else:
+                                    pass
+                        approval_checker[state] = 1 #Once state is complete, mark it in dictionary
+                        print()
             except NoSuchElementException as ex:
+                print('Error, moving back to start of approval loop')
                 select_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//div[contains(@class,"btn-group btn-block")]/button[2]')))
                 select_button.click()
-                for state in success_checker.keys():
-                    if success_checker[state] == 1:
-                        states_remaining.remove(state)
-                        print(f'Removing {state} from states to approve, already approved')
+
                 
             
         '''
@@ -193,46 +195,50 @@ class DataNicheGrabloid(Grabloid):
         
         '''
         print('---------------------------------------------Requesting Downloads----------------------------------')
-        request_success = { state:0 for state in full_states}
-        states_to_request = full_states
-        while len(states_to_request)>0: 
+        request_success = { state:0 for state in full_states} #same mechanism as above to verify success
+        while sum(request_success.values())<len(request_success.keys()): 
             try:
-                for state in full_states:
-                    print(f'State is {state}')
-                    sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
-                    ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
-                    print(f'Clicked on {state}')
-                    validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
-                    
-                    for i, program in enumerate(validations()):
-                        print(f'Requesting {program.text}')
-                        ActionChains(driver).move_to_element(validations()[i]).click().perform()
-                        time.sleep(8)
-                        val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
-                        ActionChains(driver).move_to_element(val_summer).click().perform()
-                        time.sleep(8)
-                        download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
-                        download_report.click()
-                        time.sleep(8)
-                        CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
-                        CLD_options.click()
-                        time.sleep(8)
-                        download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
-                        download_button.click()
-                        time.sleep(8)
-                        popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
-                        popup_accept.click()
-                        time.sleep(8)
-                        validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
-                        validate_all_button.click()
-                        time.sleep(8)
-                        back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
-                        back_to_state_programs_button.click()
-                        time.sleep(8)
-                        wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
-                states_to_request.remove(state)
-            except StaleElementReferenceException:
+                for state in request_success.keys():
+                    if request_success[state] == 1:
+                        print(f'Already requested reports for {state}, moving on')
+                    else:
+                        print(f'State to request for is {state}')
+                        sidebar_link = wait.until(EC.presence_of_element_located((By.XPATH,f'//table[@id="statetbl"]//td[text()="{state}"]')))
+                        ActionChains(driver).move_to_element(sidebar_link).click().pause(8).perform()
+                        print(f'Clicked on {state}')
+                        validations = lambda: driver.find_elements_by_xpath('//div[@id="forReview"]//div[text()="Validate"]')
+                        
+                        for i in range(len(validations())):
+                            print(f'Requesting {validations()[i].text}')
+                            ActionChains(driver).move_to_element(validations()[i]).click().perform()
+                            time.sleep(8)
+                            val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
+                            ActionChains(driver).move_to_element(val_summer).click().perform()
+                            time.sleep(8)
+                            download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
+                            download_report.click()
+                            time.sleep(8)
+                            CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
+                            CLD_options.click()
+                            time.sleep(8)
+                            download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
+                            download_button.click()
+                            time.sleep(8)
+                            popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
+                            popup_accept.click()
+                            time.sleep(8)
+                            validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
+                            validate_all_button.click()
+                            time.sleep(8)
+                            back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
+                            back_to_state_programs_button.click()
+                            time.sleep(8)
+                            wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
+                        request_success[state] = 1
+            except StaleElementReferenceException as ex:
+                print(ex)
                 driver.refresh()
+                print('Error, moving back to start of request loop')
                 
         #Now all data has been validated and all reports have been requested.  Have to 
         #navigate to the "My Reports" section and download all reports while only selecting 
@@ -254,10 +260,13 @@ class DataNicheGrabloid(Grabloid):
         # an xlsx and move them to the appropriate folder
         obtained = []
         for i in range(len(reports_table)):
-            state = reports_table.loc[i,'state']
-            program = reports_table.loc[i,'program']
+            state = reports_table.loc[i,'state'].strip()
+            print(f'State is {state}')
+            program = reports_table.loc[i,'Programs Selected']
+            print(f'Program is {program}')
             link_text = reports_table.loc[i,'Report Name']
             flex_program = mapper[(mapper['STATE']==state)&(mapper['PROGRAM']==program)]['Flex Contract Name'].tolist()[0]
+            print(f'Flex code is {flex_program}')
             new_file_name = f'{state}_{flex_program}_{qtr}Q{yr}_DNA_.xlsx'
             link = driver.find_element_by_xpath(f'//a[text()="{link_text}"]')
             if new_file_name in obtained:
@@ -266,12 +275,13 @@ class DataNicheGrabloid(Grabloid):
             ActionChains(driver).move_to_element(link).click().perform()
             print('Downloading...')
             success_flag = False
-            while len(os.listdir()) ==0:
+            while len(os.listdir())==0: #Makes sure the file enters the folder
                 time.sleep(1)
-            while success_flag == False:
+            while success_flag == False: #
                 file = os.listdir()[0]
-                if file[-4:] != '.txt':
+                if file[-4:] != '.txt' and file[-4:] != 'xlsx':
                     time.sleep(1)
+                    file = os.listdir()[0]
                 else:
                     success_flag = True
                     print(f'Successfully downloaded {new_file_name}')
@@ -279,7 +289,18 @@ class DataNicheGrabloid(Grabloid):
             while success_flag ==False:
                 try:
                     print('Parsing data....')
-                    data = pd.read_csv(file,delimiter='|',engine='python', encoding='utf-8-sig')
+                    '''
+                    Found that some files come as excel and others come as text.
+                    Added in if-else to handle that, the "write_excel" variable is 
+                    passed further on if writing an excel is required
+                    '''
+                    if file[-4:] == '.txt':
+                        write_excel = 1
+                        print('File is text file, reading')
+                        data = pd.read_csv(file,delimiter='|',engine='python', encoding='utf-8-sig')
+                    elif file[-4:] == '.xlsx':
+                        write_excel = 0
+                        print('File is excel file, no need to read.')
                     print('Parsing complete!')
                     success_flag = True
                 except PermissionError as err:
@@ -289,8 +310,11 @@ class DataNicheGrabloid(Grabloid):
             file_path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\DataNicheTest2\\Claims\\{states[new_file_name[:2]]}\\{program}\\{yr}\\{qtr}\\'
             if os.path.exists(file_path) == False:
                 os.makedirs(file_path)
-            data.to_excel(os.path.join(file_path,new_file_name),index=False)
-            os.remove(file)
+            if write_excel == 1:
+                data.to_excel(os.path.join(file_path,new_file_name),index=False)
+                os.remove(file)
+            else:
+                shutil.move(file,os.path.join(file_path,new_file_name))
             obtained.append(new_file_name)
             print(f'All operations complete for {new_file_name}!')
         
