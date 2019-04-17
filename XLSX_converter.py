@@ -8,7 +8,7 @@ Created on Thu Oct 18 13:34:11 2018
 import os
 import win32com.client as com
 import shutil
-qtr = '3'
+qtr = '4'
 yr = '2018'
 path = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Claims'
 
@@ -19,17 +19,21 @@ def convert(path):
             if f'{qtr}Q{yr}' not in file:
                 continue
             if file.split('.')[-1]=='xls':
+                print(f'Converting {file}')
                 excel = com.gencache.EnsureDispatch('Excel.Application')
                 wb = excel.Workbooks.Open(root+'\\'+file)
                 wb.SaveAs(root+'\\'+file+'x', FileFormat=51)
                 wb.Close()
+                print('Done')
 #The below file moves all XLS files from the Test\Claims directory to the archive
 def archive():
     path2 = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Archive\XLS'       
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file.split('.')[-1]=='xls':
+            if file.split('.')[-1]=='xls' or file.split('.')[-1]=='csv':
+                print(f'Moving {file}')
                 shutil.move(root+'\\'+file,path2+'\\'+file)
+                print('Done')
    
 def list_files():
     import pandas as pd  
@@ -46,3 +50,4 @@ if __name__=="__main__":
     convert(path)
     archive()
     list_files()
+     
