@@ -30,8 +30,11 @@ class Pusher():
         batches = [to_submit[i:i+n] for i in range(0,len(to_submit),n)]
         return batches
 
-    def move_files(self,batches):
-        write_path = 'Z:\\'
+    def move_files(self,batches,test = True):
+        if test != True:
+            write_path = 'Z:\\'
+        else:
+            write_path = 'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\CLD_PUSH_TEST\\'
         for batch in batches:
             for file in batch:
                 base_file = file.split('\\')[-1].replace(' ','-')
@@ -52,8 +55,8 @@ class Pusher():
             while len(os.listdir(write_path))>1:
                 time.sleep(1)
 
-def push_dataniche_test(qtr,year):
-    path = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\DataNicheTest\Claims'
+def push_dataniche(qtr,year, test = True):
+    path = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\DataNicheTest2\Claims'
     to_submit = []
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -61,8 +64,12 @@ def push_dataniche_test(qtr,year):
                 file_name = os.path.join(root,file)
                 to_submit.append(file_name)
     n = 400
+    print(f'Number of files to submit for OV3 is {len(to_submit)}')
     batches = [to_submit[i:i+n] for i in range(0,len(to_submit),n)]
-    write_path = 'Z:\\'
+    if test != True:
+        write_path = 'Z:\\'
+    else:
+        write_path = 'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\CLD_PUSH_TEST\\'
     for batch in batches:
         for file in batch:
             base_file = file.split('\\')[-1].replace(' ','-')
@@ -88,16 +95,12 @@ def push_dataniche_test(qtr,year):
     
 def main():
     pusher = Pusher()
-    batches = pusher.batch_files(qtr='3',year='2018')
+    batches = pusher.batch_files(qtr='4',year='2018')
     pusher.move_files(batches)
     
-    push_dataniche_test('3','2018')
-
-if __name__ == '__main__':
-    main()
+    push_dataniche('4','2018')
     
-    
-'''    
+'''   
 os.chdir(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Claims')
 obtained = []
 for root, dirs, files in os.walk(os.getcwd()):
@@ -109,7 +112,7 @@ files = pd.DataFrame(obtained,columns=['File Name'])
 files.to_csv('automated_files.csv')
 '''
 
-
+'''
 def one_off_push(file,):
     write_path = 'C:\\Test\\'
     base_file = file.split('\\')[-1].replace(' ','-')
@@ -137,4 +140,8 @@ files = get_one_off_push(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documen
 loc = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Converted Raw Text\Claims\North Dakota'
 for file in files:
     one_off_push(file)
+'''
+if __name__ == '__main__':
+    main()
+    
 
