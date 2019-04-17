@@ -63,7 +63,7 @@ def push_dataniche(qtr,year, test = True):
             if f'{qtr}Q{year}'in file:
                 file_name = os.path.join(root,file)
                 to_submit.append(file_name)
-    n = 400
+    n = 40
     print(f'Number of files to submit for OV3 is {len(to_submit)}')
     batches = [to_submit[i:i+n] for i in range(0,len(to_submit),n)]
     if test != True:
@@ -96,51 +96,9 @@ def push_dataniche(qtr,year, test = True):
 def main():
     pusher = Pusher()
     batches = pusher.batch_files(qtr='4',year='2018')
-    pusher.move_files(batches)
-    
-    push_dataniche('4','2018')
-    
-'''   
-os.chdir(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Claims')
-obtained = []
-for root, dirs, files in os.walk(os.getcwd()):
-    for file in files:
-        file = file.replace('.xlsx','_.xlsx')
-        new_name = f'IRIS.CLD.{file}'
-        obtained.append(new_name)
-files = pd.DataFrame(obtained,columns=['File Name'])
-files.to_csv('automated_files.csv')
-'''
+    pusher.move_files(batches, test=False)
+    push_dataniche('4','2018', test=False)
 
-'''
-def one_off_push(file,):
-    write_path = 'C:\\Test\\'
-    base_file = file.split('\\')[-1].replace(' ','-')
-    extension = base_file.split('.')[-1]
-    base_file = base_file.split('.')[0]
-    #base_file = base_file+"_LABNET_"
-    print(f"base file is {base_file}")
-    print(f"extension is {extension}")
-    base_file = base_file+'.'+extension
-    print(f"base file is now {base_file}")
-    file_name = 'IRIS.CLD.'+base_file
-    print(file_name)
-    shutil.copy(file,write_path+file_name)
-
-file = batches[0][0]
-one_off_push(file)
-def get_one_off_push(location):
-    to_push = []
-    for root, dirs, files in os.walk(location):
-        for file in files:
-            to_push.append(os.path.join(root,file))
-    return to_push
-
-files = get_one_off_push(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Converted Raw Text\Claims\North Dakota')
-loc = r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Converted Raw Text\Claims\North Dakota'
-for file in files:
-    one_off_push(file)
-'''
 if __name__ == '__main__':
     main()
     
