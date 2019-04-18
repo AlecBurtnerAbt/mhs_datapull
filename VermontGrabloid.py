@@ -107,8 +107,11 @@ class Vermont_Grabloid(Grabloid):
         mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Vermont', usecols='D,E',dtype='str')
         mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
         wait = WebDriverWait(driver,10)
-        accept = wait.until(EC.element_to_be_clickable((By.ID,'terms')))
-        accept.click()
+        try:
+            accept = wait.until(EC.element_to_be_clickable((By.ID,'terms')))
+            accept.click()
+        except TimeoutException as ex:
+            print('Dont have to accept twice dude')
         
         #invoice stuff is below this
         
@@ -187,7 +190,7 @@ class Vermont_Grabloid(Grabloid):
                         else:
                             file_type = '.pdf'
                             print('File is a pdf file')
-                        file_name = f'VT-{label}-{yq}-{mapper2[report]}{file_type}'
+                        file_name = f'VT-{label}-{yq}-{report}{file_type}'
                         print(f'File name is {file_name}\n')
                         if check_for_error() == 1:
                             print('Error')
@@ -370,12 +373,22 @@ def getReports(num,chunks):
                         print('e')
                         pass
                 except TimeoutException as ex:
+                    time.sleep(10)
                     driver.refresh()
                     pass
                 except NoSuchElementException as ex:
+                    time.sleep(10)
+                    driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
+                    user = driver.find_element_by_id('username')
+                    user.send_keys(username)
+                    pass_word = driver.find_element_by_id('password')
+                    pass_word.send_keys(password)
+                    login = driver.find_element_by_id('submit')
+                    login.click()
+                    reports_tab = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@href="/RebateServicesPortal/reports/index"]')))       
+                    reports_tab.click()                
                     print(ex)
-                    print('Moving on')
-    
+                    print('Trying again')
     driver.close()
     
 									

@@ -97,7 +97,7 @@ def main():
     pusher = Pusher()
     batches = pusher.batch_files(qtr='4',year='2018')
     pusher.move_files(batches, test=False)
-    push_dataniche('4','2018', test=False)
+    #push_dataniche('4','2018', test=False)
 
 if __name__ == '__main__':
     main()
