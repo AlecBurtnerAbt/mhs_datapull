@@ -259,7 +259,7 @@ class Vermont_Grabloid(Grabloid):
         driver.close()
         return yq, username, password, master_dict,types,reference_list
  
-def getReports(num,chunks):
+def getReports(num,chunk):
     print(f'Hello from {num}')
     print('Working on chunk: '+str(num))
     time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
@@ -323,72 +323,72 @@ def getReports(num,chunks):
     report = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@id="reportList"]')))
     report_select = lambda: Select(report())
     #Now starting iterating through the chunk
-    for chunk in chunks:
-        for label, program, ndc in chunk:
-            success = 0
-            if program == 'Medicare_Wrap':
-                program = 'VPharm/SPAP (Medicare Wrap)'
-            elif program == 'DME':
-                program = 'State Only Diabetic (DME)'
-            while success==0:
-                try:
-                    report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
-                    select_report = lambda: Select(report)
-                    if program == 'JCode':
-                        select_report().select_by_index(2)
-                        print('1')
-                    else:
-                        select_report().select_by_index(1)
-                        print('2')
-                    ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
-                    print('a')
-                    ndc_in.send_keys(ndc)
-                    wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@name="docType"]')))
-                    docType = driver.find_element_by_xpath('//select[@name="docType"]')
-                    select_docType = Select(docType)
-                    select_docType.select_by_visible_text(program.replace('_',' '))
-                    wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="rpuStart"]')))
-                    rpu = driver.find_element_by_xpath('//input[@name="rpuStart"]')
-                    rpu.send_keys(yq)
-                    print('b')
-                    submit_button= driver.find_element_by_xpath('//input[@value="Submit"]')
-                    submit_button.click()
-                    accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
-                    accept.click()
-                    wait.until(EC.staleness_of(accept))
-                    wait.until(EC.staleness_of(submit_button))
-                    soup = BeautifulSoup(driver.page_source,'html.parser')
-                    Reports = [x.text.strip() for x in soup.find_all('td')]
-                    report_type = types_2[types.index(program)]
-                    if program == 'JCode':
-                        key = f'EXT JCODE CLD Report for {ndc} VT {yq} JCode'
-                    else:
-                        key = f'EXT Claim Level Detail Report Report for {ndc} VT {yq} {report_type}'
-                    print('c')
-                    if any(map((lambda x: key in x),Reports)):
-                        success=1
-                        print('d')
-                    else:
-                        driver.refresh()
-                        print('e')
-                        pass
-                except TimeoutException as ex:
-                    time.sleep(10)
+    #for chunk in chunks:
+    for label, program, ndc in chunk:
+        success = 0
+        if program == 'Medicare_Wrap':
+            program = 'VPharm/SPAP (Medicare Wrap)'
+        elif program == 'DME':
+            program = 'State Only Diabetic (DME)'
+        while success==0:
+            try:
+                report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
+                select_report = lambda: Select(report)
+                if program == 'JCode':
+                    select_report().select_by_index(2)
+                    print('1')
+                else:
+                    select_report().select_by_index(1)
+                    print('2')
+                ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
+                print('a')
+                ndc_in.send_keys(ndc)
+                wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@name="docType"]')))
+                docType = driver.find_element_by_xpath('//select[@name="docType"]')
+                select_docType = Select(docType)
+                select_docType.select_by_visible_text(program.replace('_',' '))
+                wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="rpuStart"]')))
+                rpu = driver.find_element_by_xpath('//input[@name="rpuStart"]')
+                rpu.send_keys(yq)
+                print('b')
+                submit_button= driver.find_element_by_xpath('//input[@value="Submit"]')
+                submit_button.click()
+                accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
+                accept.click()
+                wait.until(EC.staleness_of(accept))
+                wait.until(EC.staleness_of(submit_button))
+                soup = BeautifulSoup(driver.page_source,'html.parser')
+                Reports = [x.text.strip() for x in soup.find_all('td')]
+                report_type = types_2[types.index(program)]
+                if program == 'JCode':
+                    key = f'EXT JCODE CLD Report for {ndc} VT {yq} JCode'
+                else:
+                    key = f'EXT Claim Level Detail Report Report for {ndc} VT {yq} {report_type}'
+                print('c')
+                if any(map((lambda x: key in x),Reports)):
+                    success=1
+                    print('d')
+                else:
                     driver.refresh()
+                    print('e')
                     pass
-                except NoSuchElementException as ex:
-                    time.sleep(10)
-                    driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
-                    user = driver.find_element_by_id('username')
-                    user.send_keys(username)
-                    pass_word = driver.find_element_by_id('password')
-                    pass_word.send_keys(password)
-                    login = driver.find_element_by_id('submit')
-                    login.click()
-                    reports_tab = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@href="/RebateServicesPortal/reports/index"]')))       
-                    reports_tab.click()                
-                    print(ex)
-                    print('Trying again')
+            except TimeoutException as ex:
+                time.sleep(10)
+                driver.refresh()
+                pass
+            except NoSuchElementException as ex:
+                time.sleep(10)
+                driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
+                user = driver.find_element_by_id('username')
+                user.send_keys(username)
+                pass_word = driver.find_element_by_id('password')
+                pass_word.send_keys(password)
+                login = driver.find_element_by_id('submit')
+                login.click()
+                reports_tab = wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@href="/RebateServicesPortal/reports/index"]')))       
+                reports_tab.click()                
+                print(ex)
+                print('Trying again')
     driver.close()
     
 									
@@ -402,7 +402,7 @@ def make_chunks(master_dict):
                     report = (key,key2,value)
                     reports.append(report)
     import math
-    n = math.ceil(len(reports)/1)
+    n = math.ceil(len(reports)/4)
     chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
     return chunks
 
@@ -495,6 +495,7 @@ def download_reports():
                 link.click()
             except WebDriverException as ex:
                 driver.refresh()
+                time.sleep(10)
                 continue
             while download_name not in os.listdir() and counter<10:
                 time.sleep(1)
@@ -555,8 +556,8 @@ def main():
     grabber.delete_old_reports()
     yq, username, password, master_dict,types,reference_list = grabber.get_invoices()  
     chunks = make_chunks(master_dict)
-    getReports(1,chunks)
-    #multi_grabber(chunks)
+    #getReports(1,chunks)
+    multi_grabber(chunks)
     download_reports()
 
     

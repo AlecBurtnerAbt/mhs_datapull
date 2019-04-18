@@ -78,13 +78,16 @@ class PrimsGrabloid(Grabloid):
                 reset_button = driver.find_element_by_xpath('//input[@value="Reset"]')
                 page().click()
                 wait.until(EC.staleness_of(reset_button))
-                
+                print('Starting states\n')
                 for state in states:
                     #first make sure the right state is selected
+                    print(f'State is {state}')
                     state_input = driver.find_element_by_xpath('//input[contains(@name,"StateDropDown")]')
                     if state_input.get_attribute('value')==state:
+                        print('State arleady selected')
                         pass
                     else:
+                        print('Wrong state selected, selecting other state')
                         state_to_select = driver.find_element_by_xpath('//div[contains(@id,"StateDropDown")]//li[text()="'+state+'"]')
                         ActionChains(driver).move_to_element(state_input).click().pause(1).click(state_to_select).pause(1).perform()
                         wait.until(EC.staleness_of(state_input))
@@ -94,11 +97,14 @@ class PrimsGrabloid(Grabloid):
                     programs = [x.text for x in lists[1]]
                     
                     for program in programs:
+                        print(f'Working on {program} for {state}')
                         #Make sure the right program is slected, if not select it
                         program_drop_down = driver.find_element_by_xpath('//input[contains(@id,"ProgramDropDown_Input")]')
                         if program_drop_down.get_attribute('value')==program:
+                            print('Correct program selected')
                             pass
                         else:
+                            print('Selecting correct program')
                             xpath = '//div[contains(@id,"ProgramDropDown_DropDown")]//li[contains(text(),"{}")]'.format(program)
                             program_to_select = driver.find_element_by_xpath(xpath)
                             program_drop_down = driver.find_element_by_xpath('//input[contains(@id,"ProgramDropDown_Input")]')
@@ -116,10 +122,11 @@ class PrimsGrabloid(Grabloid):
                         if page == invoice_request_page:
                             date_checker = driver.find_element_by_xpath('//span[contains(@id,"AvailableQuarterLabelValue")]')
                             if date_checker.text == yq2:
+                                print('Invoice available')
                                 cont_flag = 0
                                 codes = driver.find_elements_by_xpath('//li[contains(@id,"_ELabelerCodeListBox_")]')
                                 ActionChains(driver).move_to_element(codes[0]).click().key_down(Keys.SHIFT).move_to_element(codes[-1]).click().key_up(Keys.SHIFT).perform()
-                                submit = driver.find_elements_by_xpath('//input[@value="Submit" and @type="submit" and contains(@id,"InvoiceSubmitButton_input")]')[1]
+                                submit = driver.find_element_by_xpath('//input[@type="submit" and @class="rbDecorated" and @value="Submit" and contains(@name,"EInvoiceSubmitButton") and contains(@id,"EInvoiceSubmitButton_input")]')
                                 retrieved.append(state+' '+program+' '+'CMS Format')
                             else:
                                 cont_flag = 1
