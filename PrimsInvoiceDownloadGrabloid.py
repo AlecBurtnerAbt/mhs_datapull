@@ -143,29 +143,35 @@ class PrimsDownloadGrabloid(Grabloid):
         
         
         for state in states:
-            print('Checking state drop down value')
-            drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
-            if drop_down.get_attribute('value')==state:
-                print('State already selected')
-                pass
-            else:
-                print('Selecting state...')
+            state_selected_flag = 0
+            while state_selected_flag == 0:
+                print('Checking state drop down value')
                 drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
-                ActionChains(driver).move_to_element(drop_down).click().pause(5).perform()
-                xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown")]//li[text()="{}"]'.format(state)
-                state_to_select = driver.find_element_by_xpath(xpath)
-                ActionChains(driver).move_to_element(state_to_select).click().pause(5).perform()
-                wait.until(EC.staleness_of(drop_down))
-                print('State selected.')
-            soup = BeautifulSoup(driver.page_source,'html.parser')
-            print('Parsing lists...')
-            lists2 = soup.find_all('ul',attrs={'class':'rcbList'})
-            programs = [x.text.split('-') for x in lists2[1]]
-            codes = [x[0].strip() for x in programs]
-            name = ['-'.join(x[1:]) for x in programs]
-            programs = dict(zip(codes,name))
-            print('Program mapper updated')
-            state_programs.update({state:programs})        
+                if drop_down.get_attribute('value')==state:
+                    print('State already selected')
+                    pass
+                else:
+                    print('Selecting state...')
+                    drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                    ActionChains(driver).move_to_element(drop_down).click().pause(5).perform()
+                    xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown")]//li[text()="{}"]'.format(state)
+                    state_to_select = driver.find_element_by_xpath(xpath)
+                    ActionChains(driver).move_to_element(state_to_select).click().pause(5).perform()
+                    wait.until(EC.staleness_of(drop_down))
+                    print('State selected.')
+                drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                if drop_down.get_attribute('value')==state:
+                    print('State selected, passing value to state selected flag')
+                    state_selected_flag = 1
+                soup = BeautifulSoup(driver.page_source,'html.parser')
+                print('Parsing lists...')
+                lists2 = soup.find_all('ul',attrs={'class':'rcbList'})
+                programs = [x.text.split('-') for x in lists2[1]]
+                codes = [x[0].strip() for x in programs]
+                name = ['-'.join(x[1:]) for x in programs]
+                programs = dict(zip(codes,name))
+                print('Program mapper updated')
+                state_programs.update({state:programs})        
         driver.back() 
         try:
             alert = driver.switch_to.alert
@@ -312,8 +318,6 @@ class PrimsDownloadGrabloid(Grabloid):
             ndc_box = driver.find_element_by_xpath('//input[contains(@name,"$ctl00$NDCTextBox")]')
             ndc_box.clear()
         driver.close()
-        os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
         return invoices_obtained
 
 
@@ -321,6 +325,7 @@ def main():
     grabber = PrimsDownloadGrabloid()
     invoices = grabber.pull()
     grabber.send_message(invoices)
+    grabber.cleanup()
     #send_message(subject=,body=,to='burtner_abt_alec@lilly.com')
     
 if __name__=='__main__':
