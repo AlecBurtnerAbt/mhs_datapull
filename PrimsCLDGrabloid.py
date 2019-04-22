@@ -41,7 +41,7 @@ class PrimsDownloadGrabloid(Grabloid):
         super().__init__(script='Prims')
 
     def pull(self):
-        states = {
+        statesII = {
             'AK': 'Alaska',
             'AL': 'Alabama',
             'AR': 'Arkansas',
@@ -111,10 +111,13 @@ class PrimsDownloadGrabloid(Grabloid):
         password = login_credentials.iloc[0,1]
     
         driver.get('https://primsconnect.dxc.com ')
-        fl_flex_mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='F,G',dtype='str',names=['flex_id','state_id'])
-        wv_flex_mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='Q,R',dtype='str',names=['flex_id','state_id'])
-        fl_flex_mapper = dict(zip(fl_flex_mapper['state_id'],fl_flex_mapper['flex_id']))
-        wv_flex_mapper = dict(zip(wv_flex_mapper['state_id'],wv_flex_mapper['flex_id']))
+        fl_flex_mapper_df = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='E,F',dtype='str',names=['flex_id','state_id'])
+        wv_flex_mapper_df = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Prims', usecols='Q,R',dtype='str',names=['flex_id','state_id'])
+        fl_flex_mapper = dict(zip(fl_flex_mapper_df['state_id'],fl_flex_mapper_df['flex_id']))
+        wv_flex_mapper = dict(zip(wv_flex_mapper_df['state_id'],wv_flex_mapper_df['flex_id']))
+        fl_flex_mapper_df['state'] = 'FL'
+        wv_flex_mapper_df['state'] = 'WV'
+        flex_mapper = fl_flex_mapper_df.append(wv_flex_mapper_df)
         def login_proc():
             i_accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_PlaceHolderMain_LoginWebPart_ctl00_RadCheckBoxAccept"]/span[1]')))
             i_accept.click()
@@ -149,7 +152,8 @@ class PrimsDownloadGrabloid(Grabloid):
         
         
         for state in states:
-            try:
+            state_selected_flag = 0
+            while state_selected_flag == 0:
                 print('Checking state drop down value')
                 drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
                 if drop_down.get_attribute('value')==state:
@@ -157,11 +161,17 @@ class PrimsDownloadGrabloid(Grabloid):
                     pass
                 else:
                     print('Selecting state...')
+                    drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                    ActionChains(driver).move_to_element(drop_down).click().pause(5).perform()
                     xpath = '//div[contains(@id,"ctl00_StateDropDown_DropDown")]//li[text()="{}"]'.format(state)
                     state_to_select = driver.find_element_by_xpath(xpath)
-                    ActionChains(driver).move_to_element(drop_down).click().pause(1).move_to_element(state_to_select).click().perform()
-                    time.sleep(7)
+                    ActionChains(driver).move_to_element(state_to_select).click().pause(5).perform()
+                    wait.until(EC.staleness_of(drop_down))
                     print('State selected.')
+                drop_down = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@title="Select State"]')))
+                if drop_down.get_attribute('value')==state:
+                    print('State selected, passing value to state selected flag')
+                    state_selected_flag = 1
                 soup = BeautifulSoup(driver.page_source,'html.parser')
                 print('Parsing lists...')
                 lists2 = soup.find_all('ul',attrs={'class':'rcbList'})
@@ -170,36 +180,24 @@ class PrimsDownloadGrabloid(Grabloid):
                 name = ['-'.join(x[1:]) for x in programs]
                 programs = dict(zip(codes,name))
                 print('Program mapper updated')
-                state_programs.update({state:programs})       
-            except:
-                try:
-                    login_proc()
-                    invoice_request_page =  wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_rtsRequest"]/div/ul/li[2]/a/span/span/span')))
-                    invoice_request_page.click()  
-                    wait.until(EC.staleness_of((invoice_request_page)))
-                except:
-                    continue
-       
+                state_programs.update({state:programs})        
+        driver.back() 
         try:
             alert = driver.switch_to.alert
             alert.accept()
         except NoAlertPresentException as ex:
             pass
-        try:            
-            driver.back()
-        except:
-            login_proc()
-        
+
         #The below block of code crawls through available download pages and 
         #downloads the data, renames it, and moves it to the appropriate directory
        
         
         #Chane the number of reports per page
         #make it so there's only one page to scrape
-        number_per_page = driver.find_element_by_xpath('//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radGridRequestSummary_ctl00_ctl03_ctl01_ChangePageSizeTextBox"]')
+        number_per_page = driver.find_element_by_xpath('//input[contains(@id,"_ChangePageSizeTextBox")]')
         number_per_page.clear()    
-        number_per_page.send_keys('10000')    
-        inter=driver.find_element_by_xpath('//*[@id="ctl00_SPWebPartManager1_g_967e6faf_f673_482f_95d3_d22fbf4faf7a_ctl00_radGridRequestSummary_ctl00_ctl03_ctl01_ChangePageSizeLinkButton"]')
+        number_per_page.send_keys('9999')    
+        inter=driver.find_element_by_xpath('//input[contains(@id,"_ChangePageSizeLinkButton")]')
         inter.click()
         
         
@@ -279,10 +277,18 @@ class PrimsDownloadGrabloid(Grabloid):
             state = file.split('_')[1]
             program_code = file.split('_')[7]
             key = '{}_{}'.format(state,program_code)
+            '''
+            The below code no longer is required as of 4/22/2019
+            All files need 3 rows skipped now
+            
+            
             if state=='FL':
                 skip = 1
             else:
                 skip = 3
+            '''
+            skip=3
+            print(f'File is {file}')
             temp = pd.read_excel(file,skiprows=skip,skipfooter=1)
             frames[key] = frames[key].append(temp)
             #os.remove(file)
@@ -294,16 +300,19 @@ class PrimsDownloadGrabloid(Grabloid):
                 program = fl_flex_mapper[program_code]
             else:
                 program = wv_flex_mapper[program_code]
+            print(f'Program is {program} and state is {state}')
             path ='O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\{}\\{}\\{}\\Q{}\\'.format(statesII[state],program,yr,qtr)
             if os.path.exists(path):
                 pass
             else:
                 os.makedirs(path)
+            print('Path work is done')
             file_name = '{}_{}_{}Q{}.xlsx'.format(state,program,qtr,yr)
             os.chdir(path)
             frames[key].to_excel(file_name,engine='xlsxwriter',index=False)
+            print(f'{file_name} has been written to file')
         os.chdir('O:\\')
-        os.removedirs(self.temp_folder_path)
+
 def main():
     grabber = PrimsDownloadGrabloid()
     grabber.pull()

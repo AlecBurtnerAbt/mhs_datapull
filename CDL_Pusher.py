@@ -7,7 +7,7 @@ import time
 class Pusher():
     
     def __init__(self):
-        self.path = 'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\'
+        self.path = 'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\West Virginia'
         os.chdir(self.path)
     
     def batch_files(self,qtr,year):
@@ -96,6 +96,7 @@ def push_dataniche(qtr,year, test = True):
 def main():
     pusher = Pusher()
     batches = pusher.batch_files(qtr='4',year='2018')
+    #pusher.move_files(batches)
     pusher.move_files(batches, test=False)
     #push_dataniche('4','2018', test=False)
 
