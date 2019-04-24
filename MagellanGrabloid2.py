@@ -113,8 +113,8 @@ class MagellanGrabloid(Grabloid):
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]
         to_address = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Notification Address', usecols='A',dtype='str',names=['Email'],header=None).iloc[0,0]
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='D,F',dtype='str')
-        mapper = dict(zip(mapper['CLD Programs'],mapper['Lilly Code']))
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['CLD Programs'],mapper['Invoice Name']))
         #Login with provided credentials
         driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
         user_name = driver.find_element_by_xpath('//*[@id="username"]')
@@ -462,8 +462,8 @@ class MagellanGrabloid(Grabloid):
         claims_details = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="mainForm:claims"]')))
         claims_details.click()
         yq = str(yr)+str(qtr)
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='D,F',dtype='str')
-        mapper = dict(zip(mapper['CLD Programs'],mapper['Lilly Code']))
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['CLD Programs'],mapper['Invoice Name']))
             
         """
         Sets dropdown default to null
