@@ -78,12 +78,12 @@ class OklahomaGrabloid(Grabloid):
                     time.sleep(1)
                 if name[-3:]=='zip':
                     with zipfile.ZipFile(name) as ax:
-                        ax.extractall(path=self.land_folder)
+                        ax.extractall(path=self.temp_folder_path)
                     os.remove(name)
-                    for path, folders, files in os.walk(self.land_folder):
+                    for path, folders, files in os.walk(self.temp_folder_path):
                         for name in files:
-                            shutil.move(os.path.join(path,name),self.land_folder+name)
-                    for path, folders, files in os.walk(self.land_folder):                
+                            shutil.move(os.path.join(path,name),self.temp_folder_path+name)
+                    for path, folders, files in os.walk(self.temp_folder_path):                
                         for folder in folders:
                             shutil.rmtree(folder)
                 else:
@@ -91,7 +91,7 @@ class OklahomaGrabloid(Grabloid):
                 while name not in os.listdir():
                     print(f'Waiting for {name}')
                     time.sleep(1)
-                file = os.listdir(self.land_folder)[0]
+                file = os.listdir(self.temp_folder_path)[0]
                 name = ' '.join(file.split('.'))
                 if 'Claims Detail Data' in name:
                     program = 'CMS'
@@ -128,7 +128,7 @@ class OklahomaGrabloid(Grabloid):
             return_link.click()
         os.chdir('O:\\')
         try:
-            os.removedirs(self.land_folder)
+            os.removedirs(self.temp_folder_path)
         except:
             print("Couldn't delete landing folder")
         # now turn all CLD data into excel files
