@@ -602,7 +602,7 @@ class MagellanGrabloid(Grabloid):
 @push_note(__file__)
 def main():
     cld_only = False
-    efficient = True
+    efficient = False
     grabber = MagellanGrabloid()
     if cld_only == False:
         cld, invoices = grabber.pull(efficient=efficient) 

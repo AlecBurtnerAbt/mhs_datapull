@@ -41,10 +41,10 @@ class ConnecticutGrabloid(Grabloid):
         yr = self.yr
         qtr = self.qtr
         driver = self.driver
-        login_credentials = self.credentials
+        login_credentials = self.credentials.dropna(axis=0)
         wait = self.wait
         cld_programs = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='{}'.format(self.script), usecols='E,F',dtype='str')
-        login_credentials = login_credentials.iloc[:2,:]
+        login_credentials = login_credentials.iloc[:3,:]
         user = list(login_credentials.Username)
         password = list(login_credentials.Password)
         yq = str(yr)+str(qtr)
@@ -54,6 +54,9 @@ class ConnecticutGrabloid(Grabloid):
         pulled_invoices = []
         canary_wait = WebDriverWait(driver,1)
         for USER, PW in zip(user,password):
+            print(f'User is {USER}')
+        for USER, PW in zip(user[1:],password[1:]):
+            print(f'Obtaining data for labeler: {USER}')
             driver.get('https://www.ctdssmap.com/CTPortal/Provider/Secure%20Site/tabId/56/Default.aspx')
             user_name = driver.find_element_by_xpath('//*[@id="dnn_ctr383_LoginPage_SearchPage_dataPanel_ctl01_ctl11_userName_mb_userName"]')
             user_name.send_keys(USER)
@@ -128,6 +131,7 @@ class ConnecticutGrabloid(Grabloid):
                 names =  driver.find_elements_by_xpath('//table[@class="iC_DataListContainer"]//tbody//tr[position()>2][contains(@class,"iC_Data")]//td[2]')
                 names = [x.text for x in names]
                 #loop through the links
+                print('Downloading invoices')
                 for j, x in enumerate(xpaths):
                     item = driver.find_element_by_xpath(x)
                     xxx = item.text
@@ -195,6 +199,7 @@ class ConnecticutGrabloid(Grabloid):
             programs_we_care_about = list(programs_we_care_about['CLD Programs'])
             master_frame = pd.DataFrame()
             for key in programs_we_care_about:
+                print(f'Obtaining CLD for {key}')
                 reverse_key = mapper2[key]
                 for ndc in claims_to_get[reverse_key]:
                     ndc_obtained = 0
