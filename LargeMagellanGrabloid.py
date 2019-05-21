@@ -107,11 +107,12 @@ class LargeMagellanGrabloid(Grabloid):
         driver = self.driver
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]   
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='D,E',dtype='str')
-        mapper = dict(zip(mapper['State Invoice ID'],mapper['Lilly Code']))
-        mapper2 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,F',dtype='str')
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['CLD Programs'],mapper['Invoice Name']))
+        mapper2 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='F,G',dtype='str')
         mapper2 = dict(zip(mapper2['State Invoice ID'],mapper2['CLD Programs']))
-        mapper3 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Programs', usecols='B,D',dtype='str')
+        mapper3 = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Magellan', usecols='G,D',dtype='str')
+        mapper3 = dict(zip(mapper3['CLD Programs'],mapper3['State']))
         #Login with provided credentials
         driver.get('https://mmaverify.magellanmedicaid.com/cas/login?service=https%3A%2F%2Feinvoice.magellanmedicaid.com%2Frebate%2Fj_spring_cas_security_check')   
         user_name = driver.find_element_by_xpath('//*[@id="username"]')
@@ -142,9 +143,10 @@ class LargeMagellanGrabloid(Grabloid):
             for report in reports:
                 labeler = report.text.split(' ')[0]
                 report_id = report.text.split(' ')[1]
-                program = mapper[report_id]
+                program = mapper2[report_id]
                 directory = mapper2[report_id]
-                state = list(mapper3['State'][mapper3['State Invoice Id (e.g. OBRA 1000 etc)']==report_id])[0]
+                state = mapper3[program]
+                flex_name = mapper[program]
                 print(f'State is {state}')
                 directory = directory.replace(state,'').strip()
                 full_state = states[state]
@@ -153,7 +155,7 @@ class LargeMagellanGrabloid(Grabloid):
                     download_button.click()
                     while 'claimdetails.xls' not in os.listdir():
                         time.sleep(1)
-                    file_name = f'{state}_{program}_{qtr}Q{yr}_{labeler}.xls'
+                    file_name = f'{state}_{flex_name}_{qtr}Q{yr}_{labeler}.xls'
                     path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\{full_state}\\{directory}\\{yr}\\Q{qtr}\\'
                     if os.path.exists(path)==False:
                         os.makedirs(path)
