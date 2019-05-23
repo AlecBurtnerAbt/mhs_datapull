@@ -33,7 +33,7 @@ from grabloid import Grabloid, push_note
 
 class FlexGrabloid(Grabloid):
     def __init__(self):
-        super().__init__(script='DrugRebate.com')
+        super().__init__(script='FlexRebate')
         
         
     def pull(self):
@@ -204,6 +204,7 @@ class FlexGrabloid(Grabloid):
             ext = file[-4:]
             path = f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\{file_type}\\{state}\\{program}\\{yr}\\Q{qtr}\\'
             file_name = f'{abbrev}_{program}_{qtr}Q{yr}_{labeler}{ext}'
+            print(f'Done with {file_name}')
             if os.path.exists(path)==False:
                 os.makedirs(path)
             else:
