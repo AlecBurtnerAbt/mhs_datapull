@@ -277,7 +277,7 @@ class MagellanOriginalGrabloid(Grabloid):
             driver.get(url)
         driver.close()
         os.chdir('O:\\')
-        os.remove(self.temp_folder_path)
+        
         return invoices_obtained
 
 def main():

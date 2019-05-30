@@ -44,8 +44,8 @@ class IllinoisGrabloid(Grabloid):
         qtr = self.qtr
         driver = self.driver
         wait = self.wait
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols='D,E',dtype='str')
-        mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['State Program'],mapper['Flex Contract ID']))
         time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
         yr = time_stuff.iloc[0,0]
         qtr = time_stuff.iloc[0,1]
@@ -187,8 +187,8 @@ class IllinoisGrabloid(Grabloid):
         qtr = self.qtr
         driver = self.driver
         wait = self.wait
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols='D,E',dtype='str')
-        mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Illinois', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['State Program'],mapper['Flex Contract ID']))
         time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
         yr = time_stuff.iloc[0,0]
         qtr = time_stuff.iloc[0,1]
@@ -238,8 +238,8 @@ class IllinoisGrabloid(Grabloid):
         username = self.credentials.iloc[0,0]
         password = self.credentials.iloc[0,1]
         yq=str(yr)+str(qtr)
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name=f'{self.script}', usecols='D,E',dtype='str')
-        mapper = dict(zip(mapper['State Program'],mapper['Flex Program']))
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name=f'{self.script}', usecols='E,G',dtype='str')
+        mapper = dict(zip(mapper['State Program'],mapper['Flex Contract ID']))
         
         
         

@@ -55,7 +55,7 @@ class ConnecticutGrabloid(Grabloid):
         canary_wait = WebDriverWait(driver,1)
         for USER, PW in zip(user,password):
             print(f'User is {USER}')
-        for USER, PW in zip(user[1:],password[1:]):
+        for USER, PW in zip(user[:],password[:]):
             print(f'Obtaining data for labeler: {USER}')
             driver.get('https://www.ctdssmap.com/CTPortal/Provider/Secure%20Site/tabId/56/Default.aspx')
             user_name = driver.find_element_by_xpath('//*[@id="dnn_ctr383_LoginPage_SearchPage_dataPanel_ctl01_ctl11_userName_mb_userName"]')

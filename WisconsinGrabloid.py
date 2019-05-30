@@ -137,7 +137,7 @@ class WisconsinGrabloid(Grabloid):
         # So we'll get the values in the drops downs first, then
         # loop through the options requesting CLD data
         
-        labeler_code_drop_down = lambda: driver.find_element_by_xpath('//select[contains(@id,"LabelerCode")]')
+        labeler_code_drop_down = lambda: wait.until(EC.element_to_be_clickable((By.XPATH,'//select[contains(@id,"LabelerCode")]')))
         labeler_code_select = lambda: Select(labeler_code_drop_down())
         labeler_codes = [option.text for option in labeler_code_select().options[1:]] #first option is blank space, cut it out
         
@@ -152,38 +152,54 @@ class WisconsinGrabloid(Grabloid):
         all_options = product(labeler_codes, invoices)
         
         for labeler, invoice in all_options:
+            wait.until(EC.element_to_be_clickable((By.XPATH,'//select[contains(@id,"LabelerCode")]')))
             try:
                 print(f'Finding CLD for {labeler.strip()}:{invoice.strip()}')
                 labeler_code_select().select_by_visible_text(labeler)
-                date_input().send_keys(f'{qtr}/{yr}')        
-                invoice_type_select().select_by_visible_text(invoice)            
+                print('Selected labeler')
+                date_input().send_keys(f'{qtr}/{yr}')      
+                print('Date entered')
+                invoice_type_select().select_by_visible_text(invoice) 
+                print('Selecting Invoice')
                 submit_button = driver.find_element_by_xpath('//input[@value="Submit"]')
                 submit_button.send_keys(Keys.RETURN)
-                wait.until(EC.staleness_of(submit_button))   
+                print('Submit button clicked')
+                load_screen_flag = 0
+                while load_screen_flag ==0:
+                    try:
+                        print('Waiting for loading pane to dissapear')
+                        load_screen = wait.until(EC.presence_of_element_located((By.XPATH,'//div[@id="LoadingPanel1"]')))
+                        if load_screen.get_attribute('style') == "display: none;":
+                            load_screen_flag = 1
+                        else:
+                            time.sleep(1)
+                    except:
+                        pass
                 #after submit button is clicked it takes you to another page, so
                 #navigate back to the CLD page
-                cld_home_link = driver.find_element_by_xpath('//a[text()="Claim Level Detail Home"]')
-                cld_home_link.click()
-                cld_for_whole_invoice_link = driver.find_element_by_xpath('//a[@title="Request CLD for an Entire Invoice"]')
-                cld_for_whole_invoice_link.click()
+                try:
+                    no_data_present_message = wait.until(EC.element_to_be_clickable((By.XPATH,'//tr[@class="Message ErrorMessage"]//td[@class="MessageText"]')))
+                except:
+                    pass
+                if no_data_present_message:
+                    print(f'Continuing on because: {no_data_present_message.text}')
+                    continue
+                else:
+                    cld_home_link = driver.find_element_by_xpath('//a[text()="Claim Level Detail Home"]')
+                    cld_home_link.click()
+                    cld_for_whole_invoice_link = driver.find_element_by_xpath('//a[@title="Request CLD for an Entire Invoice"]')
+                    cld_for_whole_invoice_link.click()
             except TimeoutException as ex:
                 print(ex)
                 print('Timed out')
-            try:
-                no_data_present_message = driver.find_element_by_xpath('//a[contains(text(),"We did not find any claims")]')
-                print(f'No data present for {labeler.strip()}:{invoice.strip()}')
-            except:
-                print('No errors')
-            finally:
-                print(f'Done with {labeler.strip()}:{invoice.strip()}')
+            
+            print(f'Done with {labeler.strip()}:{invoice.strip()}')
                 
-     print('Requesting CLD complete, closing browser')           
+        print('Requesting CLD complete, closing browser')           
     '''
     It takes 24 hours to generate reports, run
     WisconsinGrabloid2 the next day
     '''
-
-
 
 
 @push_note(__file__)
