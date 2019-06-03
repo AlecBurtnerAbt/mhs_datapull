@@ -544,18 +544,18 @@ class MagellanGrabloid(Grabloid):
                 length_check = 0
                 while length_check == 0:
                     try:
-                        file_info = pd.read_csv('claimdetails.xls',sep='\t')
+                        file_info = pd.read_excel('claimdetails.xls')
+                        if len(file_info)== 0:
+                            print(f'{cld_program_name} for label code {labeler_code} was zero byte size.')
+                            logger.info(f'{cld_program_name} for label code {labeler_code} contained no records.')
+                            zero_byte_files.append((cld_program_name,labeler_code))
+                            length_check = 1
+                        else:
+                            print(f'{cld_program_name} for label {labeler_code} has data.')
+                            length_check = 1
                     except:
                         print('File read error, retrying.')
                         time.sleep(1)
-                    if len(file_info)== 0:
-                        print(f'{cld_program_name} for label code {labeler_code} was zero byte size.')
-                        logger.info(f'{cld_program_name} for label code {labeler_code} contained no records.')
-                        zero_byte_files.append((cld_program_name,labeler_code))
-                        length_check = 1
-                    else:
-                        print(f'{cld_program_name} for label {labeler_code} has data.')
-                        length_check = 1
                 if len(item[1].split(' ')[0]) <3:
                     state = item[1].split(' ')[0]
                 elif item[1].split(' ')[0] in ('BlueChoice','First','Absolute'):

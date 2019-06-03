@@ -28,7 +28,7 @@ import traceback
 import logging
 
 class Grabloid():
-    driver_path = r'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\'
+    driver_path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Automation Scripts Parameters\\'
     def __init__(self,script,use_chrome=True):
         os.chdir('O:\\')
         self.script = script
@@ -40,7 +40,7 @@ class Grabloid():
          'download.prompt_for_download':False}
         chrome_options.add_experimental_option("prefs",prefs)
         if use_chrome == True:
-            self.driver = webdriver.Chrome(executable_path=os.path.join(Grabloid.driver_path,"chromedriver.exe"), options=chrome_options)
+            self.driver = webdriver.Chrome(executable_path=r"C:\chromedriver.exe", options=chrome_options)
         else: 
             pass
         self.yr = pd.read_excel(Grabloid.driver_path+"automation_parameters.xlsx",sheet_name="Year-Qtr",usecols="A").iloc[0,0]

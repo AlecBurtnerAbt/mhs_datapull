@@ -213,38 +213,6 @@ class UtahGrabloid(Grabloid):
                             print(ex)
                             time.sleep(1)
 
-                    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-a = UtahGrabloid()
-driver = a.driver
-yr = a.yr
-qtr = a.qtr
-wait = a.wait
-login_credentials = a.credentials
+if __name__ =='__main__':
+    grabber = UtahGrabloid()
+    grabber.pull()
