@@ -103,7 +103,7 @@ class CaliforniaGrabloid(Grabloid):
             all_report = driver.find_element_by_xpath(f'//a[contains(text(),"Q{qtr}_Y{yr}") and contains(text(),"ALL") ]')
             while file_name not in os.listdir(): 
                 all_report.click()
-                time.sleep(5)
+                time.sleep(15)
         
             list_of_files = os.listdir()   
             latest_file = sorted(list_of_files, key=os.path.getctime)[-1]
@@ -240,7 +240,8 @@ class CaliforniaGrabloid(Grabloid):
             url = driver.current_url
             for program in master_dict[labeler]:
                 success_flag = 0
-                while success_flag ==0:
+                attempt_counter = 0
+                while success_flag ==0 and attempt_counter <9:
                     try:
                         drop_down = lambda: wait.until(EC.element_to_be_clickable((By.ID,'Program')))
                         drop_down_select = lambda: Select(drop_down())
@@ -290,8 +291,10 @@ class CaliforniaGrabloid(Grabloid):
                             continue
                     except TimeoutException or WebDriverException as ex:
                             driver.get(url)
+                            attempt_counter += 1
                             continue
                     except ValueError as err:
+                            attempt_counter += 1
                             driver.get(url)
                             continue
             driver.get('https://rais.medi-cal.ca.gov/drug/DrugLablr.asp')     

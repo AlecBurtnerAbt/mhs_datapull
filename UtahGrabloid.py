@@ -199,6 +199,9 @@ class UtahGrabloid(Grabloid):
                     while len(os.listdir()) <1:
                         print('Waiting for file to download')
                         time.sleep(1)
+                    while '.tmp' in os.listdir()[0] or '.crd' in os.listdir()[0]:
+                        print('Waiting for file to download fully')
+                        time.sleep(1)
                     file = os.listdir()[0]
                     extension = '.pdf'
                     pdf_file_name = file_name+extension

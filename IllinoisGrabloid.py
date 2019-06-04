@@ -230,7 +230,7 @@ class IllinoisGrabloid(Grabloid):
                  'plugins.always_open_pdf_externally':True,
                  'download.prompt_for_download':False}
         chromeOptions.add_experimental_option('prefs',prefs)
-        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'C:\chromedriver.exe')
         os.chdir(self.temp_folder_path)
         yr = self.yr
         qtr = self.qtr
@@ -324,7 +324,7 @@ class IllinoisGrabloid(Grabloid):
                         value = mapper[program]
                         first_half = '_'.join(name.split(' ')[:5])
                         second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
-                        download_name = '-'.join([first_half,second_half])+'.xls'
+                        download_name = '-'.join([first_half,second_half])+'.xlsx'
                     if download_name in os.listdir():
                         continue
                     else:
@@ -407,7 +407,7 @@ class IllinoisGrabloid(Grabloid):
                     report = (tupe[0],tupe[1],ndc)
                     reports.append(report)
         import math
-        n = math.ceil(len(reports)/4)
+        n = math.ceil(len(reports)/1)
         chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
         return chunks
 
@@ -429,7 +429,7 @@ def getReports(num,chunk):
          'plugins.always_open_pdf_externally':True,
          'download.prompt_for_download':False}
     chromeOptions.add_experimental_option('prefs',prefs)
-    driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+    driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'C:\chromedriver.exe')
     os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\Illinois\\')
     #Login with provided credentials
     driver.get(r'https://rsp.ilgov.emdeon.com/RebateServicesPortal/login/home?goto=http://rsp.ilgov.emdeon.com/RebateServicesPortal/')

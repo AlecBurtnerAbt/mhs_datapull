@@ -176,6 +176,8 @@ class CaliforniaGrabloid2(Grabloid):
         programs = [program for program in dirs[0]]
         for program in programs:
            path = f'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\California\\{program}\\{self.yr}\\Q{self.qtr}\\'
+           if os.path.exists(path) == False:
+               os.makedirs(path)
            os.chdir(path)
            if 'CMPD' in program:
                program_df = pd.DataFrame(columns= cali_compound_columns)

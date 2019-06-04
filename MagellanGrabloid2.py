@@ -155,7 +155,7 @@ class MagellanGrabloid(Grabloid):
         for root, dirs, files in os.walk(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Test\Invoices'):
             already_have.append(root)
         if efficient ==True:
-            already_have = [x.split('\\')[-3] for x in already_have if len(x.split('\\'))>9 and x.split('\\')[-1]=='Q'+str(qtr)]
+            already_have = [x.split('\\')[-3] for x in already_have if len(x.split('\\'))>9 and x.split('\\')[-1]=='Q'+str(qtr) and x.split('\\')[-2]==str(yr)]
         else:
             already_have = []
 

@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Tue Jun  4 10:21:21 2019
+
+@author: AUTOBOTS
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Aug 13 16:06:40 2018
 
 @author: C252059
@@ -31,9 +38,9 @@ import numpy as np
 import xlsxwriter as xl
 from grabloid import Grabloid, push_note
 
-class DelawareGrabloid(Grabloid):
+class OregonGrabloid(Grabloid):
     def __init__(self):
-        super().__init__(script='Delaware')
+        super().__init__(script='Oregon')
         
         
     def pull(self):
@@ -41,13 +48,15 @@ class DelawareGrabloid(Grabloid):
         qtr = self.qtr
         driver = self.driver
         wait = self.wait
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Delaware', usecols='C,D',dtype='str')
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Oregon', usecols='E,F',dtype='str')
+        modifier_table =  pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Oregon', usecols='C,D',dtype='str')
+        mapper = dict(zip(mapper.Portal,mapper.Flex))
+        modifier_table = dict(zip(modifier_table.Modifier,modifier_table.Meaning))
         login_credentials = self.credentials
         username = login_credentials.iloc[0,0]
         password = login_credentials.iloc[0,1]
-        #Get the program map.  This map must be maintainted by the MHS team.
-        
-        mapper = dict(zip(mapper.Delaware,mapper.Lilly))
+
+    
         #build date time group
         yq = str(yr)+'q'+str(qtr)
         #Get to the page and login
@@ -55,9 +64,9 @@ class DelawareGrabloid(Grabloid):
         wait2 = WebDriverWait(driver,2)
         driver.get('https://www.edsdocumenttransfer.com/')
         user = wait.until(EC.element_to_be_clickable((By.ID,'form_username')))
-        user.send_keys('llymedicaid@lilly.com')
-        password = driver.find_element_by_id('form_password')
-        password.send_keys('Spring16!')
+        user.send_keys(username)
+        password_input = driver.find_element_by_id('form_password')
+        password_input.send_keys(password)
         login = driver.find_element_by_id('submit_button')
         login.click()
         
@@ -67,11 +76,14 @@ class DelawareGrabloid(Grabloid):
         folders_select = Select(folders)
         folders_select.select_by_visible_text('/ Distribution')
         #now give it some time to load
-        time.sleep(2)
+        oregon_folder = wait.until(EC.presence_of_element_located((By.XPATH,'//span[text()="Oregon"]')))
+        oregon_folder.click()
         sub_folders = lambda: driver.find_elements_by_xpath('//table[@id="folderfilelisttable"]//tr//td//img[@title="Folder"]')
         invoices = []
         for k,folder in enumerate(sub_folders()):
             sub_folders()[k].click()
+            current_quarter_folder = wait.until(EC.presence_of_element_located((By.XPATH,f'//span[text()="{"".join([str(yr),str(qtr)])}"]')))
+            current_quarter_folder.click()
             wait.until(EC.element_to_be_clickable((By.XPATH,'//span[text()="Parent Folder"]')))
             try:
                 num_pages = driver.find_element_by_xpath('//table//tbody//tr[@class="nullSpacer"]//td//b')
@@ -88,19 +100,21 @@ class DelawareGrabloid(Grabloid):
                     wait.until(EC.element_to_be_clickable((By.XPATH,'//span[text()="Parent Folder"]')))
                 for j, file in enumerate(new_files()):
                     name = new_files()[j].text
-                    Name = name[6:]
-                    label_code = Name[:5]
-                    file_type = Name[5:9]
+                    labeler = name[:5]
+                    program_code = name.split('.')[0][-3:-1]
+                    modifier = name.split('.')[0][-1]
+                    flex_code = mapper[program_code]
+                    modifier = modifier_table[modifier]
                     program = name[name.find('q')+2:name.find('.')].lower()
-                    ext = Name[-3:]
-                    lilly_program = mapper[program]
+                    extension = name[-3:]
                     new_files()[j].click()
-                    file_name = lilly_program+'_'+label_code+'_'+str(yr)+'_'+str(qtr)
+                    file_name = f'OR_{flex_code}_{qtr}Q{yr}_{labeler}_{modifier}_.{extension}'
+                    file_type = name[5:9]
                     if file_type =='clda':
                         download = wait2.until(EC.element_to_be_clickable((By.ID,'downloadLink')))
                         download.click() 
                         ext = '.txt'
-                        file_name = f'DE_{lilly_program}_{qtr}Q{yr}_{label_code}{ext}'
+                        download_file_name = f'OR_{flex_code}_{qtr}Q{yr}_{labeler}_{modifier}_{ext}'
                         try:
                             close_pop_up = wait.until(EC.element_to_be_clickable((By.XPATH,'//div//ips-verifier//div//div//div//i')))
                             close_pop_up.click()
@@ -139,7 +153,7 @@ class DelawareGrabloid(Grabloid):
                     else:
                         file_type='Invoices'
                     
-                    path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\'+file_type+'\\'+'Delaware'+'\\'+lilly_program+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                    path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\'+file_type+'\\'+'Oregon'+'\\'+flex_code+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
                     
                     if os.path.exists(path)==False:
                         os.makedirs(path)
@@ -153,6 +167,8 @@ class DelawareGrabloid(Grabloid):
             folders = wait.until(EC.element_to_be_clickable((By.ID,'field_gotofolder')))
             folders_select = Select(folders)
             folders_select.select_by_visible_text('/ Distribution')
+            oregon_folder = wait.until(EC.presence_of_element_located((By.XPATH,'//span[text()="Oregon"]')))
+            oregon_folder.click()
         q_flag = 0
         while q_flag==0:
             try:
@@ -163,46 +179,48 @@ class DelawareGrabloid(Grabloid):
         return(invoices)
         
     def morph_invoices(self):
-        path = f'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Delaware\\'
+        path = f'O:\\M-R\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Oregon\\'
+        print('Converting CLD .dat to .xlsx')
         for root, folders, files in os.walk(path):
                 for file in files:
-                    if file[-3:]=='txt':
+                    if file[-3:]=='dat':
+                        print(f'Working on {file}')
                         with open(root+'\\'+file) as f:
                             file_data = []
                             lines = f.readlines()
                             for line in lines:
-                                CDE_NDC = line[:11]
-                                CDE_CLM_TYPE = line[11]
-                                CDE_ICN = line[12:25]
-                                IND_ADJ = line[25]
-                                NUM_DTL = line[26:30]
-                                CDE_PROC = line[30:36]
-                                ID_PROVIDER = line[36:51]
-                                CDE_FUND_CODE = line[51:55]
-                                DTE_FDOS = line[55:63]
-                                DTE_PAID = line[63:71]
-                                NUM_DAYS_SUPPLY = line[71:75]
-                                QTY_UNITS_BILLED = line[75:89]
-                                AMT_BILLED = line[89:100]
-                                AMT_PD_MCAID = line[100:111]
-                                AMT_PD_NON_MCAID = line[111:122]
-                                IND_TPL = line[122]
-                                AMT_ALWD = line[123:134]
-                                DTE_ADJUDICATED = line[134:]
-                                file_data.append([CDE_NDC,CDE_CLM_TYPE,CDE_ICN,IND_ADJ,NUM_DTL,CDE_PROC,ID_PROVIDER,CDE_FUND_CODE,DTE_FDOS,
-                                                  DTE_PAID,NUM_DAYS_SUPPLY,QTY_UNITS_BILLED,AMT_BILLED,AMT_PD_MCAID,AMT_PD_NON_MCAID,
-                                                  IND_TPL,AMT_ALWD,DTE_ADJUDICATED])
+                                ICN = line[:13]
+                                VOID_ICN = line[13:26]
+                                CDE_NDC = line[26:37]
+                                RBT_PERIOD = line[37:42]
+                                QTY_REBATE = line[42:58]
+                                DTE_SERVICE = line[58:66]
+                                DTE_PAID = line[66:74]
+                                ID_PROV_BILLING = line[74:89]                                
+                                ID_PROV_PRESCRB = line[89:104]
+                                AMT_PAID = line[104:115]                                
+                                AMT_BILLED = line[115:126]                                
+                                AMT_COPAY = line[126:133]                                
+                                AMT_TPL = line[133:146]
+                                AMD_NDCPRO = line[146:157]
+                                NUM_PRESCRIP = line[157:169]
+                                NUM_DAY_SUPPLY = line[169:173]
+                                QTY_REFILL = line[173:]                                
+                                file_data.append([ICN, VOID_ICN,CDE_NDC,RBT_PERIOD,QTY_REBATE,DTE_SERVICE,DTE_PAID,ID_PROV_BILLING,
+                                                  ID_PROV_PRESCRB,AMT_PAID,AMT_BILLED,AMT_COPAY,AMT_TPL,AMD_NDCPRO,NUM_PRESCRIP,
+                                                  NUM_DAY_SUPPLY,QTY_REFILL])
                         file_name = file[:-4]+'.xlsx'
-                        df = pd.DataFrame(file_data,columns=['CDE_NDC','CDE_CLM_TYPE','CDE_ICN','IND_ADJ','NUM_DTL','CDE_PROC','ID_PROVIDER','CDE_FUND_CODE','DTE_FDOS',
-                                          'DTE_PAID','NUM_DAYS_SUPPLY','QTY_UNITS_BILLED','AMT_BILLED','AMT_PD_MCAID','AMT_PD_NON_MCAID',
-                                          'IND_TPL','AMT_ALWD','DTE_ADJUDICATED'])
+                        df = pd.DataFrame(file_data,columns=['ICN', 'VOID_ICN','CDE_NDC','RBT_PERIOD','QTY_REBATE'
+                                                              ,'DTE_SERVICE','DTE_PAID','ID_PROV_BILLING',
+                                                  'ID_PROV_PRESCRB','AMT_PAID','AMT_BILLED','AMT_COPAY','AMT_TPL'
+                                                  ,'AMD_NDCPRO','NUM_PRESCRIP','NUM_DAY_SUPPLY','QTY_REFILL'])
                         placement_path = root+'\\'+file_name
                         df.to_excel(placement_path,index=False)
                         os.remove(root+'\\'+file)        
                         
 #@push_note(__file__)
 def main():
-    grabber = DelawareGrabloid()
+    grabber = OregonGrabloid()
     invoices = grabber.pull()
     grabber.morph_invoices()
     grabber.cleanup()
@@ -210,3 +228,5 @@ def main():
     
 if __name__ =='__main__':
     main()
+
+
