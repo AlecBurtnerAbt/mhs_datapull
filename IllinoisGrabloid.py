@@ -269,7 +269,7 @@ class IllinoisGrabloid(Grabloid):
         types_select = Select(types)
         programs = [x.text.replace(' ','_') for x in types_select.options]
         values = [x.get_attribute('value') for x in driver.find_elements_by_xpath('//select[@id="docType"]/option')]
-        mapper = dict(zip(programs,values))    
+        mapper2 = dict(zip(programs,values))    
         #Helper function to return boolean if report is ready
         def checker(element,xpath):
             try:
@@ -312,18 +312,18 @@ class IllinoisGrabloid(Grabloid):
                         ndc = name.split(' ')[5]
                         state = name.split(' ')[6]
                         program = name.split(' ')[-1]
-                        value = mapper[program]
+                        value = mapper2[program]
                         first_half = '_'.join(name.split(' ')[:3])
                         second_half = '-'.join([ndc,state,yq,value])
-                        download_name = '-'.join([first_half,second_half])+'.xls'
+                        download_name = '-'.join([first_half,second_half])+'.xlsx'
                     else:
                     #get info for file name
                         ndc = name.split(' ')[7]
                         state = name.split(' ')[8]
                         program = name.split(' ')[10]
-                        value = mapper[program]
+                        value = mapper2[program]
                         first_half = '_'.join(name.split(' ')[:5])
-                        second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper[program])
+                        second_half = '-'.join(name.split(' ')[-4:]).replace(program,mapper2[program])
                         download_name = '-'.join([first_half,second_half])+'.xlsx'
                     if download_name in os.listdir():
                         continue

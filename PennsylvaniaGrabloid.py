@@ -92,7 +92,8 @@ class PennsylvaniaGrabloid(Grabloid):
             print('Selecting '+str(code))
             report_dict = {}
             for report in list(mapper.keys()):
-                
+                if report == "DME" or report == "SR":
+                    continue
                 type_select().select_by_visible_text(report)
                 time.sleep(1)
                 if ' ' in report:
@@ -212,7 +213,7 @@ class PennsylvaniaGrabloid(Grabloid):
                  'plugins.always_open_pdf_externally':True,
                  'download.prompt_for_download':False}
         chromeOptions.add_experimental_option('prefs',prefs)
-        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'C:\chromedriver.exe')
         os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder')
         #for file in os.listdir():
             #os.remove(file)
@@ -354,7 +355,7 @@ def getReports(num,chunk):
         chromeOptions.add_experimental_option('prefs',prefs)
         #chromeOptions.add_argument('--headless')
         #chromeOptions.add_argument('--disable-gpu')
-        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+        driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'C:\chromedriver.exe')
         os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder')
         #Login with provided credentials
         driver.get('https://rsp.pagov.changehealthcare.com/RebateServicesPortal/login/home?goto=http://rsp.pagov.changehealthcare.com/RebateServicesPortal/')   
@@ -379,28 +380,35 @@ def getReports(num,chunk):
         #Now starting iterating through the chunk
         for label, program, ndc in chunk:
             success = 0
+            program = program.strip()
             while success==0:
                 try:
-                    report = driver.find_element_by_xpath('//select[@name="stateReportId"]')
+                    report = wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@name="stateReportId"]')))
                     select_report = Select(report)        
-                    select_report.select_by_index(1)
+                    select_report.select_by_index(2)
                     
-                    ndc_in = driver.find_element_by_xpath('//input[@name="ndc"]')
+                    ndc_in = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="ndc"]')))
                     ndc_in.send_keys(ndc)
                     
-                    docType = driver.find_element_by_xpath('//select[@name="docType"]')
+                    docType = wait.until(EC.element_to_be_clickable((By.XPATH,'//select[@name="docType"]')))
                     select_docType = Select(docType)
                     select_docType.select_by_visible_text(program.replace('_',' '))
                     
-                    rpu = driver.find_element_by_xpath('//input[@name="rpuStart"]')
+                    rpu = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="rpuStart"]')))
                     rpu.send_keys(yq)
                     
-                    submit_button= driver.find_element_by_xpath('//input[@value="Submit"]')
+                    submit_button= wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Submit"]')))
                     submit_button.click()
                     
                     accept = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@value="Accept"]')))
                     accept.click()
+                except NoSuchElementException as ex:
+                    print(ex.msg)
+                    print(ex.stacktrace)
+                    driver.refresh()
                 except TimeoutException as ex:
+                    print(ex.msg)
+                    print(ex.stacktrace)
                     driver.refresh()
                     
                 wait.until(EC.staleness_of(accept))

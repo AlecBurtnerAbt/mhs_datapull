@@ -30,6 +30,7 @@ import gzip
 import numpy as np
 import xlsxwriter as xl
 from grabloid import Grabloid
+from tqdm import tqdm
 
 class PrimsDownloadGrabloid(Grabloid):
     '''
@@ -219,9 +220,11 @@ class PrimsDownloadGrabloid(Grabloid):
         
         
         #iterate through the dataframe to download files
-        for i in range(len(claim_data)):
-            file_name = data.loc[i,'file_name']
+        for i in tqdm(range(len(claim_data))):
+            print(f'File name is {claim_data.loc[i,"file_name"]}')
+            file_name = claim_data.loc[i,'file_name']
             xpath = '//tr/td[text()="{}"]/following-sibling::td/span[contains(@id,"_lnkDownload")]'.format(claim_data.loc[i,'file_name'])
+            print(f'Xpath is:\n {xpath}')
             DL_flag=0
             #loop to insure that inactivity on the web page leading to 
             #logout won't stop the program
@@ -235,7 +238,7 @@ class PrimsDownloadGrabloid(Grabloid):
                     counter +=1
                 #if file in directory, success
                 if file_name in os.listdir():
-                    print(f'Downloaded {file_name}')
+                    print(f'Downloaded {file_name}\n')
                     DL_flag=1
                 else:
                     try:

@@ -5,12 +5,6 @@ Created on Tue Dec  4 15:09:01 2018
 @author: c252059
 """
 
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 18 13:44:28 2018
-
-@author: C252059
-"""
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -89,13 +83,11 @@ class Vermont_Grabloid(Grabloid):
                 
     def get_invoices(self):
         driver = self.driver
-        time_stuff = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx', sheet_name = 'Year-Qtr',use_cols='A:B')
-        yr = time_stuff.iloc[0,0]
-        qtr = time_stuff.iloc[0,1]
+        yr = self.yr
+        qtr = self.qtr
         yq=str(yr)+str(qtr)
-        login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Vermont', usecols=[0,1],dtype='str')
-        username = login_credentials.iloc[0,0]
-        password = login_credentials.iloc[0,1]
+        username = self.credentials.iloc[0,0]
+        password = self.credentials.iloc[0,1]
     
         driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
         user = driver.find_element_by_id('username')
@@ -176,7 +168,7 @@ class Vermont_Grabloid(Grabloid):
                 success = 0
                 counter = 0
                 continue_flag =0
-                while success==0 and counter < 1:
+                while success==0 and counter < 2:
                     try:
                         print('Clicking button')
                         buttons()[i].click()
@@ -190,7 +182,11 @@ class Vermont_Grabloid(Grabloid):
                         else:
                             file_type = '.pdf'
                             print('File is a pdf file')
-                        file_name = f'VT-{label}-{yq}-{report}{file_type}'
+                        if ' ' in report:
+                            modified_report = report.replace(' ','_')
+                            file_name = f'VT-{label}-{yq}-{modified_report}{file_type}'
+                        else:
+                            file_name = f'VT-{label}-{yq}-{report}{file_type}'
                         print(f'File name is {file_name}\n')
                         if check_for_error() == 1:
                             print('Error')
@@ -198,9 +194,17 @@ class Vermont_Grabloid(Grabloid):
                             continue
                         else:
                             print('No Error Found')
-                            pass                        
-                        while file_name not in os.listdir():
+                            pass        
+                        counter = 0
+                        while file_name not in os.listdir() and counter<30:
+                            counter+=1
+                            print(f'{30-counter} seconds remaining before failover operation')
                             time.sleep(1)
+                        if counter>29:
+                            print('File did not download within 30 seconds, retrying')
+                            continue
+                        else:
+                            print('File downloaded')
                         #Now open the file and return the NDCs associated to the label code and program
                         if file_type =='.txt':
                             read_flag = 0
@@ -221,8 +225,11 @@ class Vermont_Grabloid(Grabloid):
                             flex_name = mapper[report_value]
                         except KeyError as err:
                             flex_name = report
+                        print(f'Flex name is {flex_name}')
                         new_name = f'VT_{flex_name}_{qtr}Q{yr}_{label}{file_type}'
+                        print(f'New name is {new_name}')
                         path =  f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Invoices\\Vermont\\{flex_name}\\{yr}\\Q{qtr}\\'
+                        print(f'Moving to {path}')
                         if os.path.exists(path)==False:
                             os.makedirs(path)
                         shutil.move(file_name,path+new_name)
@@ -276,7 +283,7 @@ def getReports(num,chunk):
          'download.prompt_for_download':False}
     chromeOptions.add_experimental_option('prefs',prefs)
     chromeOptions.add_argument('--disable-gpu')
-    driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+    driver = webdriver.Chrome(chrome_options = chromeOptions, executable_path=r'C:\chromedriver.exe')
     os.chdir('O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\Vermont\\')
     driver.get(r'https://www.vermontrsp.com/RebateServicesPortal/login/home?goto=http://www.vermontrsp.com/RebateServicesPortal/')
     user = driver.find_element_by_id('username')
@@ -314,6 +321,9 @@ def getReports(num,chunk):
             types_2.append(typ)
         elif len(typ.split('(')[-1].split(' '))==1:
             _ = typ.split(' ')[-1].replace('(','').replace(')','').replace(' ','_')
+            types_2.append(_)
+        elif len(typ.split(' '))==2:
+            _ = typ.replace(' ','_')
             types_2.append(_)
         else:
             _='_'.join(typ.split('(')[1].split(' ')).replace(')','')
@@ -402,7 +412,7 @@ def make_chunks(master_dict):
                     report = (key,key2,value)
                     reports.append(report)
     import math
-    n = math.ceil(len(reports)/4)
+    n = math.ceil(len(reports)/3)
     chunks = [reports[x:x+n] for x in range(0,len(reports),n)]
     return chunks
 
@@ -420,7 +430,7 @@ def download_reports():
     prefs = {'download.default_directory':f'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Landing_Folder\\Vermont\\',
              'plugins.always_open_pdf_externally':True}
     chromeOptions.add_experimental_option('prefs',prefs)
-    driver =webdriver.Chrome(options = chromeOptions, executable_path=r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\chromedriver.exe')
+    driver =webdriver.Chrome(options = chromeOptions, executable_path=r'C:\chromedriver.exe')
     login_credentials = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='Vermont', usecols=[0,1],dtype='str')
     username = login_credentials.iloc[0,0]
     password = login_credentials.iloc[0,1]
@@ -450,6 +460,9 @@ def download_reports():
             types_2.append(typ)
         elif len(typ.split('(')[-1].split(' '))==1:
             _ = typ.split(' ')[-1].replace('(','').replace(')','')
+            types_2.append(_)
+        elif len(typ.split(' '))==2:
+            _ = typ.replace(' ','_')
             types_2.append(_)
         else:
             _='_'.join(typ.split('(')[1].split(' ')).replace(')','')
