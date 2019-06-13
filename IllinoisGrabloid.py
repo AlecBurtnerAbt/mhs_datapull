@@ -269,7 +269,9 @@ class IllinoisGrabloid(Grabloid):
         types_select = Select(types)
         programs = [x.text.replace(' ','_') for x in types_select.options]
         values = [x.get_attribute('value') for x in driver.find_elements_by_xpath('//select[@id="docType"]/option')]
-        mapper2 = dict(zip(programs,values))    
+        mapper2 = dict(zip(programs,values))  
+        if 'Supplemental_Rebate' in mapper2.keys():
+            mapper2.update({'SR':mapper2['Supplemental_Rebate']})
         #Helper function to return boolean if report is ready
         def checker(element,xpath):
             try:
@@ -294,7 +296,8 @@ class IllinoisGrabloid(Grabloid):
         if len(rows)==0:
             pass
         else:
-            while check_for_next()==True:
+            pages = driver.find_elements_by_xpath('//div[@class="dataTables_paginate pagination"]/*')[1:]
+            for paginate in range(len(pages)):
                 current_page = driver.find_element_by_xpath('//span[@class="currentStep"]')
                 current_page_num = current_page.text
                 print(f'Working on page {current_page_num}')
@@ -358,21 +361,24 @@ class IllinoisGrabloid(Grabloid):
                     master_df = master_df.append(temp_df)
                     print(f'{download_name} read and appended to master df!')
                 print(f'Getting next page!')
-                next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
-                next_page.click()
-                wait.until(EC.staleness_of(next_page))
+                if int(current_page.text) == len(pages):
+                    pass
+                else:
+                    next_page = driver.find_element_by_xpath('//div[@class="dataTables_paginate pagination"]/a[@class="nextLink"]')
+                    next_page.click()
+                    wait.until(EC.staleness_of(next_page))
 
             print('Done!')
 
             frames = []
-            splitters = master_df.Program.unique().tolist()  
+            splitters = master_df.Program.str.replace('_',' ').unique().tolist()  
             for splitter in splitters:
                 try:
                     program_code_name = mapper[splitter]
                 except:
                     program_code_name = splitter
-                frame = master_df[master_df['Program']==splitter]
-                path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
+                frame = master_df[master_df['Program']==splitter.replace(' ','_')]
+                path = 'O:\\M-R\\MEDICAID_OPERATIONS\\Electronic Payment Documentation\\Test\\Claims\\Illinois\\'+splitter.replace(' ','_')+'\\'+str(yr)+'\\'+'Q'+str(qtr)+'\\'
                 file_name = 'IL_'+program_code_name+'_'+str(qtr)+'Q'+str(yr)+'.xlsx'
                 if os.path.exists(path)==False:
                     os.makedirs(path)
@@ -381,7 +387,7 @@ class IllinoisGrabloid(Grabloid):
                 os.chdir(path)
                 frame.to_excel(file_name, engine='xlsxwriter',index=False)
             #now delete all the files that have been downloaded
-
+            '''
             deletes = lambda: driver.find_elements_by_xpath('//table[@id="reportsResults"]//a[@title="Delete"][@class="btn"]')
             while len(deletes())>0:
                 for i in range(len(deletes())):
@@ -390,7 +396,7 @@ class IllinoisGrabloid(Grabloid):
                     alert = driver.switch_to.alert
                     alert.accept()
                     wait.until(EC.staleness_of(canary))
-                    
+            '''  
             
         driver.close()
         os.chdir('O:\\')
@@ -399,7 +405,7 @@ class IllinoisGrabloid(Grabloid):
     def make_chunks(self,master_dict):
         #Break the information for each report down into 
         reports = []
-        for tupe in master_dict:
+        for tupe in master_list:
             for ndc in tupe[2]:
                 if len(ndc)==0:
                     continue
@@ -481,6 +487,7 @@ def getReports(num,chunk):
                 wait.until(EC.staleness_of(accept))
                 success=1
             except:
+                driver.back()
                 driver.refresh()
                 
             
