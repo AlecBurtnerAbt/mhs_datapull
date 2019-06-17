@@ -313,6 +313,8 @@ class TennesseeGrabloid(Grabloid):
                         program_name = program
                     new_name ='TN_{}_{}Q{}_{}.xls'.format(program_name,qtr,yr,code)
                     shutil.move('claimdetails.xls',path+new_name)
+                else:
+                    driver.refresh()
         return invoice_labels
 
 @push_note(__file__)
