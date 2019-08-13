@@ -115,7 +115,7 @@ class DataNicheGrabloid(Grabloid):
         user = self.credentials.iloc[0,0]
         password = self.credentials.iloc[0,1]
         wait = self.wait
-        states_to_get = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='F',dtype='str')
+        states_to_get = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='D',dtype='str')
         states_to_get = list(states_to_get.iloc[:,0].unique())
         user_name_input = wait.until(EC.element_to_be_clickable((By.XPATH,'//input[@name="username"]')))
         user_name_input.send_keys(user)
@@ -123,7 +123,7 @@ class DataNicheGrabloid(Grabloid):
         password_input.send_keys(password)
         login_button = driver.find_element_by_xpath('//input[@value="LOG IN"]')
         login_button.click()
-        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='F,G,H',dtype='str')
+        mapper = pd.read_excel(r'O:\M-R\MEDICAID_OPERATIONS\Electronic Payment Documentation\Automation Scripts Parameters\automation_parameters.xlsx',sheet_name='DataNiche', usecols='D,E,F',dtype='str')
         time.sleep(8)
         yq_tab = wait.until(EC.presence_of_element_located((By.XPATH,f'//a[@data-toggle="tab" and text()="{yr} Q{qtr}"]')))
         yq_tab.click()
@@ -211,34 +211,36 @@ class DataNicheGrabloid(Grabloid):
                         for i in range(len(validations())):
                             print(f'Requesting {validations()[i].text}')
                             ActionChains(driver).move_to_element(validations()[i]).click().perform()
-                            time.sleep(8)
+                            time.sleep(10)
                             val_summer = wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Validations/Summary"]//span[contains(text(),"Validation")]')))                
                             ActionChains(driver).move_to_element(val_summer).click().perform()
-                            time.sleep(8)
+                            time.sleep(10)
                             download_report = wait.until(EC.presence_of_element_located((By.XPATH,'//footer//button')))
                             download_report.click()
-                            time.sleep(8)
+                            time.sleep(10)
                             CLD_options = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="pnlProgramQuarter"]/div[7]/div/div[1]/div[2]/div/label[2]')))
                             CLD_options.click()
-                            time.sleep(8)
+                            time.sleep(12)
                             download_button = driver.find_element_by_xpath('//*[@id="reportPgm"]/div/div[1]/div[3]/div/button[4]')
                             download_button.click()
-                            time.sleep(8)
+                            time.sleep(12)
                             popup_accept = driver.find_element_by_xpath('//*[@id="ReportDownloadPopup"]/div/div/div/div[3]/button')
                             popup_accept.click()
-                            time.sleep(8)
+                            time.sleep(12)
                             validate_all_button = driver.find_element_by_xpath('/html/body/div[1]/nav/div/div[1]/div[1]/a/p')
                             validate_all_button.click()
-                            time.sleep(8)
+                            time.sleep(10)
                             back_to_state_programs_button = driver.find_element_by_xpath('//span[contains(@class,"backNavText")]')
                             back_to_state_programs_button.click()
-                            time.sleep(8)
+                            time.sleep(10)
                             wait.until(EC.presence_of_element_located((By.XPATH,'//a[@href="/Quarters/Index"]')))
                         request_success[state] = 1
-            except StaleElementReferenceException as ex:
+            except Exception as ex:
                 print(ex)
-                driver.refresh()
                 print('Error, moving back to start of request loop')
+                driver.back()
+                time.sleep(8)
+                
                 
         #Now all data has been validated and all reports have been requested.  Have to 
         #navigate to the "My Reports" section and download all reports while only selecting 
@@ -265,7 +267,10 @@ class DataNicheGrabloid(Grabloid):
             program = reports_table.loc[i,'Programs Selected']
             print(f'Program is {program}')
             link_text = reports_table.loc[i,'Report Name']
-            flex_program = mapper[(mapper['STATE']==state)&(mapper['PROGRAM']==program)]['Flex Contract Name'].tolist()[0]
+            try:
+                flex_program = mapper[(mapper['STATE']==state)&(mapper['PROGRAM']==program)]['Flex Contract Name'].tolist()[0]
+            except Exception as ex:
+                flex_program = program
             print(f'Flex code is {flex_program}')
             new_file_name = f'{state}_{flex_program}_{qtr}Q{yr}_DNA_.xlsx'
             link = driver.find_element_by_xpath(f'//a[text()="{link_text}"]')

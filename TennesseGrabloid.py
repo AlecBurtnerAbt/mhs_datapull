@@ -15,7 +15,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import TimeoutException
 import time
 import os
-from win32com.client import Dispatch
+#from win32com.client import Dispatch
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from bs4 import BeautifulSoup
@@ -322,7 +322,7 @@ def main():
     grabber = TennesseeGrabloid()
     invoices = grabber.pull()
     grabber.cleanup()
-    grabber.send_message(invoices)
+    #grabber.send_message(invoices)
     
 if __name__=='__main__':
     main()
